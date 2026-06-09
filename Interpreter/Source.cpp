@@ -45,7 +45,6 @@ int main(int argc, char* argv[]) {
 	Parser parser(file.value(), std::move(tokens.value()));
 	auto ast = parser.parse();
 
-
 	// parser error
 	if (!ast) {
 		Logger::log(ast.error());
