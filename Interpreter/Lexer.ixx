@@ -7,30 +7,14 @@ module;
 export module Lexer;
 
 import Error;
+import Token;
 
 /**
 * Lexer involves taking our source into tokens.
 */
-
-enum class TokenType {
-	Number,
-
-	Plus,
-	Minus,
-	Multiply,
-	Divide,
-
-	Eof
-};
-
-export struct Token {
-	TokenType type;
-	std::string lexeme;
-};
-
 export class Lexer {
 private:
-	std::string _source;
+	const std::string& _source;
 	size_t _current{ 0 };
 	size_t _line{ 1 };
 	size_t _column{ 0 };
@@ -41,13 +25,21 @@ public:
 
 	std::expected<std::vector<Token>, Error> scan_tokens();
 
+	// helper functions
 	size_t lines() { return _line; }
 	size_t column() { return _column; }
 private:
-	bool is_at_end() const;
-	char advance();
-	void consume(const std::string& t);
+	Token number();
+	Token identifier();
 
+	char peek() const;
+	char peek_next() const;
+	char previous() const;
+	char advance();
+
+	bool is_alpha(char c);
+	bool is_alphanumeric(char c);
+	bool is_at_end() const;
 	bool is_digit(const char value);
 	//bool is_numeric(const std::string& value) { return std::all_of(value.begin(), value.end(), is_digit); }
 	bool is_whitespace(const char c);

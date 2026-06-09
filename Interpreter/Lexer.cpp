@@ -9,121 +9,204 @@ module;
 
 module Lexer;
 
-std::expected<std::vector<Token>, Error> Lexer::scan_tokens() {
-	// split on space
-	// try to compare and turn into a token
-	// store tokens in vector
-	// return vector
+std::expected<std::vector<Token>, Error> Lexer::scan_tokens()
+{
+    std::vector<Token> tokens;
 
-	std::vector<Token> tokens{};
+    while (!is_at_end()) {
+        size_t line = _line;
+        size_t column = _column + 1;
 
-	while (!is_at_end()) {
-		char c = advance();
+        char c = advance();
 
-		// omit white space
-		if (is_whitespace(c)) {
-			continue;
-		}
+        if (is_whitespace(c))
+            continue;
 
-		// tokens
-		if (c == '+') {
-			tokens.emplace_back(Token { TokenType::Plus, "+"});
-			continue;
-		}
-		else if (c == '-') {
-			tokens.emplace_back(Token { TokenType::Minus, "-"});
-			continue;
-		}
-		else if (c == '*') {
-			tokens.emplace_back(Token { TokenType::Multiply, "*"});
-			continue;
-		}
-		else if (c == '/') {
-			tokens.emplace_back(Token { TokenType::Divide, "/"});
-			continue;
-		}
-		else {
-			// check if numerical
-			if (is_digit(c)) {
-				std::string number{c};
-				c = advance(); // consume first character
+        switch (c) {
+        case '!':
+            tokens.emplace_back(Token{TokenType::Bang, "!", line, column});
+            break;
 
-				// loop over numbers until whitespace
-				while (!is_whitespace(c)) {
-					// check if digit or a decimal point for floating numbers
-					if (is_digit(c) || c == '.') {
-						number.push_back(c);
+        case '+':
+            tokens.emplace_back(Token{TokenType::Plus, "+", line, column});
+            break;
 
-						if (is_at_end()) 
-							break;
+        case '-':
+            tokens.emplace_back(Token{TokenType::Minus, "-", line, column});
+            break;
 
-						c = advance();
-					}
-					else {
-						// unexpected character
-						return std::unexpected(
-							Error{
-								.code = ErrorCode::BASIC,
-								.message = "Invalid character within number value.",
-								.line = _line,
-								.column = _column,
-								.source_line = get_current_line(),
-							}
-						);
-					}
-				}
-				
-				// append number token to array
-				tokens.emplace_back(Token{ TokenType::Number, number });
-			}
-		}
+        case '*':
+            tokens.emplace_back(Token{TokenType::Multiply, "*", line, column});
+            break;
 
-		// EOF 
-		if (c == '\0') {
-			break;
-		}
+        case '/':
+            tokens.emplace_back(Token{TokenType::Divide, "/", line, column});
+            break;
+
+        case '(':
+            tokens.emplace_back(Token{TokenType::LeftParen, "(", line, column});
+            break;
+
+        case ')':
+            tokens.emplace_back(Token{TokenType::RightParen, ")", line, column});
+            break;
+
+        case '{':
+            tokens.emplace_back(Token{TokenType::LeftBrace, "{", line, column});
+            break;
+
+        case '}':
+            tokens.emplace_back(Token{TokenType::RightBrace, "}", line, column});
+            break;
+
+        case ';':
+            tokens.emplace_back(Token{TokenType::Semicolon, ";", line, column });
+            break;
+
+        default:
+            if (is_digit(c)) {
+                tokens.emplace_back(number());
+                break;
+            }
+
+            if (is_alpha(c)) {
+                tokens.emplace_back(identifier());
+                break;
+            }
+
+            // unexpected token
+            return std::unexpected(
+                Error{
+                    .code = ErrorCode::UNEXPECTED_CHAR,
+                    .message = std::format(
+                        "Unexpected character '{}'.",
+                        c
+                    ),
+                    .line = line,
+                    .column = column,
+                    .source_line = get_current_line(),
+                }
+            );
+        }
+    }
+
+    // final EOF
+    tokens.emplace_back(Token{
+        TokenType::Eof,
+        "",
+        _line,
+        _column
+        });
+
+    return tokens;
+}
+
+Token Lexer::number()
+{
+    std::string value;
+
+    value.push_back(previous());
+
+    while (
+        !is_at_end() &&
+        (is_digit(peek()) || peek() == '.')
+    )
+    {
+        value.push_back(advance());
+    }
+
+    return Token{
+        TokenType::Number,
+        value,
+        _line,
+        _column
+    };
+}
+
+Token Lexer::identifier()
+{
+    std::string text;
+
+    text.push_back(previous());
+
+    while (is_alphanumeric(peek())) {
+        text.push_back(advance());
+    }
+
+    // FUTURE: map of all keywords, loop over and find to create token
+    if (text == "print") {
+        return Token{
+            TokenType::Print,
+            text,
+            _line,
+            _column
+        };
+    }
+
+    return Token{
+        TokenType::Identifier,
+        text,
+        _line,
+        _column,
+    };
+}
+
+char Lexer::peek() const {
+	if (is_at_end())
+	{
+		return '\0';
 	}
 
-	// EOF character at the end
-	tokens.emplace_back(Token{ TokenType::Eof, ""});
+	return _source[_current];
+}
 
-	return tokens;
+char Lexer::peek_next() const {
+	if (_current + 1 >= _source.size())
+	{
+		return '\0';
+	}
+
+	return _source[_current + 1];
+}
+
+char Lexer::previous() const {
+	if (_current == 0)
+	{
+		return '\0';
+	}
+
+	return _source[_current - 1];
+}
+
+char Lexer::advance()
+{
+    if (is_at_end()) return '\0';
+
+    char c = _source.at(_current++);
+
+    if (c == '\n') {
+        ++_line;
+        _column = 0;
+    }
+    else {
+        ++_column;
+    }
+
+    return c;
+}
+
+
+bool Lexer::is_alpha(char c) {
+    return std::isalpha(static_cast<unsigned char>(c)) || c == '_';
+}
+
+bool Lexer::is_alphanumeric(char c) {
+    return is_alpha(c) || is_digit(c);
 }
 
 bool Lexer::is_at_end() const {
 	// current == max -> final char
 	return _current == _max;
-}
-
-/// <summary>
-/// Returns current char in source. After returning char: _current++.
-/// </summary>
-/// <returns>Current char in source.</returns>
-char Lexer::advance()
-{
-	if (is_at_end()) return '\0';
-
-	// increment column by one for logging
-	// P.s: _column on init = 0 so _column++ first time sets it to 1 on first char.
-	_column++;
-
-	// return character and increment current by one
-	return _source.at(_current++);
-}
-
-void Lexer::consume(const std::string& t)
-{
-	// if source at _current:_current+t.size() is t
-	// get substr
-	std::string sub = _source.substr(_current, t.size());
-
-	if (sub.compare(t) == 0) {
-		// match
-		_current += t.size();
-	}
-	else {
-		throw std::runtime_error{ "Expected '" + t + "' token not found." };
-	}
 }
 
 bool Lexer::is_digit(const char value)
@@ -133,24 +216,23 @@ bool Lexer::is_digit(const char value)
 
 bool Lexer::is_whitespace(const char c)
 {
-	// if newline then change log tracking values
-	if (c == '\n') {
-		_line++;
-		_column = 0;
-	}
-
-	return std::isspace(c); 
+	return std::isspace(static_cast<unsigned char>(c)); 
 }
 
 std::string Lexer::get_current_line() const
 {
-	size_t start = _current;
+    if (_source.empty()) {
+        return "";
+    }
+
+    size_t pos = std::min(_current, _source.size() - 1);
+	size_t start = pos;
 
 	while (start > 0 && _source[start - 1] != '\n') {
 		--start;
 	}
 
-	size_t end = _current;
+	size_t end = pos;
 
 	while (end < _source.size() && _source[end] != '\n') {
 		++end;

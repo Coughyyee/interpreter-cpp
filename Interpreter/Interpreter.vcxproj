@@ -127,13 +127,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AstPrinter.ixx" />
     <ClCompile Include="Error.ixx" />
+    <ClCompile Include="Expr.ixx" />
     <ClCompile Include="Lexer.cpp" />
     <ClCompile Include="Lexer.ixx" />
     <ClCompile Include="Logger.ixx" />
+    <ClCompile Include="Parser.cpp" />
+    <ClCompile Include="Parser.ixx" />
     <ClCompile Include="Source.cpp" />
+    <ClCompile Include="Stmt.ixx" />
+    <ClCompile Include="Token.ixx" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="grammer.txt" />
     <Text Include="input.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

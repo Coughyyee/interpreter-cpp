@@ -31,7 +31,7 @@ export namespace Logger {
 			static_cast<int>(error.code),
 			error.message, 
 			error.line, 
-			error.source_line, 
+			error.source_line.empty() ? "" : error.source_line,
 			error_arrow_spaces
 		);
 	}

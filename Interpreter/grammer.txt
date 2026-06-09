@@ -1,0 +1,31 @@
+﻿How To Read Grammer:
+→ = something consists of this.
+() = grouping.
+| = Or.
+* = 0 or more times.
+; = end.
+
+Grammer:
+program → statement* EOF ;
+
+statement → 
+        printStatement 
+        | expressionStatement ;
+
+printStatement → "print" expression ";" ;
+
+expressionStatement → expression ";" ;
+
+expression → term ;
+
+term → factor
+       ( ("+" | "-") factor )* ;
+
+factor → unary
+         ( ("*" | "/") unary )* ;
+
+unary → ("!" | "-") unary
+      | primary ;
+
+primary → NUMBER
+        | "(" expression ")" ;

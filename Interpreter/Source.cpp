@@ -6,6 +6,8 @@
 
 import Logger;
 import Lexer;
+import Parser;
+import AstPrinter;
 
 static std::expected<std::string, std::string> read_file(const char* path) {
 	std::ifstream file(path);
@@ -26,25 +28,50 @@ int main(int argc, char* argv[]) {
 	}
 
 	auto file = read_file(argv[1]);
-	if (!file.has_value()) {
+	if (!file) {
 		Logger::log(LogType::Error, file.error());
 		return -1;
 	}
 
 	Lexer lexer(file.value());
-	auto lexer_result = lexer.scan_tokens();
+	auto tokens = lexer.scan_tokens();
 
 	// lexer error
-	if (!lexer_result.has_value()) {
-		Logger::log(lexer_result.error());
+	if (!tokens) {
+		Logger::log(tokens.error());
 		return -1;
 	}
 
-	for (auto& token : lexer_result.value()) {
-		std::print("TokenType: {} | Lexeme: {}\n", static_cast<int>(token.type), token.lexeme);
+	Parser parser(file.value(), std::move(tokens.value()));
+	auto ast = parser.parse();
+
+
+	// parser error
+	if (!ast) {
+		Logger::log(ast.error());
+		return -1;
 	}
 
-	std::print("\nLines: {} Column: {}", lexer.lines(), lexer.column());
+	AstPrinter printer;
+
+	for (auto& stmt : ast.value()) {
+		std::println(
+			"{}",
+			printer.print(stmt.get())
+		);
+	}
+
+	
+
+
+
+	//for (auto& token : tokens.value()) {
+	//	std::print("TokenType: {} | Lexeme: {}\n", static_cast<int>(token.type), token.lexeme);
+	//}
+
+	//std::print("\nLines: {} Column: {}", lexer.lines(), lexer.column());
+
+
 
 	return 0;
 }
