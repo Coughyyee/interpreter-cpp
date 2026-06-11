@@ -129,6 +129,7 @@
   <ItemGroup>
     <ClCompile Include="AstPrinter.ixx" />
     <ClCompile Include="Error.ixx" />
+    <ClCompile Include="Exceptions.ixx" />
     <ClCompile Include="Expr.ixx" />
     <ClCompile Include="Interpreter.ixx" />
     <ClCompile Include="Lexer.ixx" />
@@ -137,6 +138,7 @@
     <ClCompile Include="Source.cpp" />
     <ClCompile Include="Stmt.ixx" />
     <ClCompile Include="Token.ixx" />
+    <ClCompile Include="Value.ixx" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="grammer.txt" />

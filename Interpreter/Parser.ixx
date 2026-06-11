@@ -10,6 +10,7 @@ export module Parser;
 
 import Token;
 import Expr;
+import Exceptions;
 import Error;
 import Stmt;
 
@@ -41,13 +42,14 @@ public:
 	std::unique_ptr<Expr> primary();
 
 private:
-	bool is_at_end() const;
+	bool is_at_end() const noexcept;
 	Token& peek();
 	const Token& peek() const;
 	Token& previous();
 	const Token& previous() const;
 	Token advance();
 	bool match(TokenType type);
+	bool match(std::initializer_list<TokenType> types);
 	bool check(TokenType type) const;
 	Token consume(TokenType type, ErrorCode code, const std::string& message);
 	std::string get_current_line() const;
@@ -251,16 +253,13 @@ std::unique_ptr<Expr> Parser::primary()
 	if (match(TokenType::Identifier)) {
 		return std::make_unique<VariableExpr>(previous());
 	}
-	else if (match(TokenType::Number)) {
-		return std::make_unique<LiteralExpr>(previous());
-	}
-	else if (match(TokenType::String)) {
-		return std::make_unique<LiteralExpr>(previous());
-	}
-	else if (match(TokenType::True)) {
-		return std::make_unique<LiteralExpr>(previous());
-	}
-	else if (match(TokenType::False)) {
+
+	if (match({
+		TokenType::Number,
+		TokenType::String,
+		TokenType::True,
+		TokenType::False
+	})) {
 		return std::make_unique<LiteralExpr>(previous());
 	}
 
@@ -283,7 +282,7 @@ std::unique_ptr<Expr> Parser::primary()
 	throw ParserException(ErrorCode::UNKNOWN, "Parser Error.");
 }
 
-bool Parser::is_at_end() const {
+bool Parser::is_at_end() const noexcept {
 	return _tokens.at(_current).type == TokenType::Eof;
 }
 
@@ -319,6 +318,18 @@ bool Parser::match(TokenType type) {
 
 	advance();
 	return true;
+}
+
+bool Parser::match(std::initializer_list<TokenType> types)
+{
+	for (auto type : types) {
+		if (check(type)) {
+			advance();
+			return true;
+		}
+	}
+
+	return false;
 }
 
 bool Parser::check(TokenType type) const {

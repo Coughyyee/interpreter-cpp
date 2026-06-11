@@ -11,9 +11,7 @@ export module Interpreter;
 
 import Stmt;
 import Expr;
-
-// C++ types used within the interpreter.
-using Value = std::variant<double, bool, std::string>;
+import Value;
 
 export class Interpreter {
 private:
@@ -26,7 +24,7 @@ private:
 	Value evaluate(const Expr* expr);
 	double as_number(const Value& value) const;
 	std::string as_string(const Value& value) const;
-	bool is_truthy(const Value& value) const;
+	bool is_truthy(const Value& value) const noexcept;
 };
 
 void Interpreter::interpret(const Stmt* stmt)
@@ -194,7 +192,7 @@ std::string Interpreter::as_string(const Value& value) const
 	return std::get<std::string>(value);
 }
 
-bool Interpreter::is_truthy(const Value& value) const
+bool Interpreter::is_truthy(const Value& value) const noexcept
 {
 	if (std::holds_alternative<bool>(value)) {
 		return std::get<bool>(value);

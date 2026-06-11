@@ -27,7 +27,7 @@
     <ClCompile Include="Lexer.ixx">
       <Filter>Source Files\Core</Filter>
     </ClCompile>
-    <ClCompile Include="Error.ixx">
+    <ClCompile Include="Exceptions.ixx">
       <Filter>Source Files\Core</Filter>
     </ClCompile>
     <ClCompile Include="Parser.ixx">
@@ -49,6 +49,12 @@
       <Filter>Source Files\Helpers</Filter>
     </ClCompile>
     <ClCompile Include="Token.ixx">
+      <Filter>Source Files\Types</Filter>
+    </ClCompile>
+    <ClCompile Include="Value.ixx">
+      <Filter>Source Files\Types</Filter>
+    </ClCompile>
+    <ClCompile Include="Error.ixx">
       <Filter>Source Files\Types</Filter>
     </ClCompile>
   </ItemGroup>

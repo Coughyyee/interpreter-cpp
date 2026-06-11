@@ -35,9 +35,6 @@ public:
 
 	std::expected<std::vector<Token>, Error> scan_tokens();
 
-	// helper functions
-	size_t lines() { return _line; }
-	size_t column() { return _column; }
 private:
 	Token number();
 	Token identifier();
@@ -47,12 +44,12 @@ private:
 	char previous() const;
 	char advance();
 
-	bool is_alpha(char c);
-	bool is_alphanumeric(char c);
-	bool is_at_end() const;
-	bool is_digit(const char value);
+	bool is_alpha(char c) const noexcept;
+	bool is_alphanumeric(char c) const noexcept;
+	bool is_at_end() const noexcept;
+	bool is_digit(const char value) const noexcept;
 	//bool is_numeric(const std::string& value) { return std::all_of(value.begin(), value.end(), is_digit); }
-	bool is_whitespace(const char c);
+	bool is_whitespace(const char c) const noexcept;
 
 	std::string get_current_line() const;
 };
@@ -332,25 +329,25 @@ char Lexer::advance()
 }
 
 
-bool Lexer::is_alpha(char c) {
+bool Lexer::is_alpha(char c) const noexcept {
     return std::isalpha(static_cast<unsigned char>(c)) || c == '_';
 }
 
-bool Lexer::is_alphanumeric(char c) {
+bool Lexer::is_alphanumeric(char c) const noexcept {
     return is_alpha(c) || is_digit(c);
 }
 
-bool Lexer::is_at_end() const {
+bool Lexer::is_at_end() const noexcept {
 	// current == max -> final char
 	return _current == _max;
 }
 
-bool Lexer::is_digit(const char value)
+bool Lexer::is_digit(const char value) const noexcept
 {
 	return std::isdigit(value); 
 }
 
-bool Lexer::is_whitespace(const char c)
+bool Lexer::is_whitespace(const char c) const noexcept
 {
 	return std::isspace(static_cast<unsigned char>(c)); 
 }

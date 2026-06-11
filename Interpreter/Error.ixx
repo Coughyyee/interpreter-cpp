@@ -1,7 +1,5 @@
 module;
 #include <string>
-#include <stdexcept>
-
 export module Error;
 
 // Interpreter stages for error reporting.
@@ -31,21 +29,3 @@ export struct Error {
 	std::string source_line;
 	// Add more in the future
 };
-
-export class ParserException : public std::exception {
-private:
-	std::string _message;
-	ErrorCode _error_code;
-public:
-	ParserException(ErrorCode error_code, std::string message)
-		: _error_code(error_code), _message(std::move(message)) {}
-
-	const char* what() const noexcept override {
-		return _message.c_str();
-	}
-
-	ErrorCode code() const {
-		return _error_code;
-	}
-};
-

@@ -32,15 +32,5 @@ export namespace Logger {
 		std::println(stderr);
 		std::println(stderr, "{} | {}", error.line, error.source_line.empty() ? "" : error.source_line);
 		std::println(stderr, "{} | {}^", line_number_spaces, error_arrow_spaces);
-
-		//std::print(stderr, 
-		//	"[Error Code {}]: {}\n\n[Line: {}]: {}\n{}^", 
-		//	//error.column, 
-		//	static_cast<int>(error.code),
-		//	error.message, 
-		//	error.line, 
-		//	error.source_line.empty() ? "" : error.source_line,
-		//	error_arrow_spaces
-		//);
 	}
 }
