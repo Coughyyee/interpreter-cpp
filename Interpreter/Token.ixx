@@ -4,8 +4,8 @@ module;
 export module Token;
 
 export enum class TokenType {
-	Number,
-	String,
+	NumberLiteral,
+	StringLiteral,
 	Identifier,
 
 	Equal,
@@ -28,11 +28,22 @@ export enum class TokenType {
 	LeftBrace,
 	RightBrace,
 
+	// customer operators
+	Arrow,
+
 	// Keywords
 	// Keyword lexeme map found in Lexer.ixx
+	// Types
+	Bool,
+	Number,
+	String,
+
 	Out, // print 
+	Var,
 	True,
 	False,
+	// Keywords End
+
 
 	Semicolon,
 

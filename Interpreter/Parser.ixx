@@ -30,6 +30,7 @@ public:
 	std::expected<std::vector<std::unique_ptr<Stmt>>, Error> parse();
 
 	std::unique_ptr<Stmt> statement();
+	std::unique_ptr<Stmt> variable_declaration_statement();
 	std::unique_ptr<Stmt> print_statement();
 	std::unique_ptr<Stmt> expression_statement();
 	std::unique_ptr<Expr> expression();
@@ -52,6 +53,7 @@ private:
 	bool match(std::initializer_list<TokenType> types);
 	bool check(TokenType type) const;
 	Token consume(TokenType type, ErrorCode code, const std::string& message);
+	Token consume(std::initializer_list<TokenType> types, ErrorCode code, const std::string& message);
 	std::string get_current_line() const;
 };
 
@@ -82,11 +84,42 @@ std::expected<std::vector<std::unique_ptr<Stmt>>, Error> Parser::parse()
 
 std::unique_ptr<Stmt> Parser::statement()
 {
+	if (match(TokenType::Var)) {
+		return variable_declaration_statement();
+	}
+
 	if (match(TokenType::Out)) {
 		return print_statement();
 	}
 
 	return expression_statement();
+}
+
+std::unique_ptr<Stmt> Parser::variable_declaration_statement()
+{
+	// var x -> int = 10;
+
+	Token name = consume(TokenType::Identifier, ErrorCode::EXPECTED, "Expected variable name.");
+	
+	consume(TokenType::Arrow, ErrorCode::EXPECTED, "Expected '->' after variable name.");
+
+	Token declared_type = consume(
+		{
+			TokenType::Bool,
+			TokenType::Number,
+			TokenType::String,
+		}, 
+		ErrorCode::EXPECTED, 
+		"Expected valid type name."
+	);
+
+	consume(TokenType::Equal, ErrorCode::EXPECTED, "Expected '=' after type.");
+
+	auto expr = expression();
+
+	consume(TokenType::Semicolon, ErrorCode::EXPECTED, "Expected ';' after expression.");
+
+	return std::make_unique<VariableDeclarationStmt>(name, declared_type, std::move(expr));
 }
 
 std::unique_ptr<Stmt> Parser::print_statement() {
@@ -255,8 +288,8 @@ std::unique_ptr<Expr> Parser::primary()
 	}
 
 	if (match({
-		TokenType::Number,
-		TokenType::String,
+		TokenType::NumberLiteral,
+		TokenType::StringLiteral,
 		TokenType::True,
 		TokenType::False
 	})) {
@@ -349,6 +382,17 @@ Token Parser::consume(TokenType type, ErrorCode code, const std::string& message
 			peek().lexeme
 		)
 	);
+}
+
+Token Parser::consume(std::initializer_list<TokenType> types, ErrorCode code, const std::string& message)
+{
+	for (auto type : types) {
+		if (check(type)) {
+			return advance();
+		}
+	}
+
+	throw ParserException(code, message);
 }
 
 std::string Parser::get_current_line() const

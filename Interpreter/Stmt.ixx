@@ -4,6 +4,7 @@ module;
 export module Stmt;
 
 import Expr;
+import Token;
 
 /* Statements */
 
@@ -25,6 +26,18 @@ export struct PrintStmt : Stmt {
 
 	PrintStmt(std::unique_ptr<Expr> expression)
 		: expression(std::move(expression))
+	{
+	}
+};
+
+export struct VariableDeclarationStmt : Stmt {
+	Token name;
+	Token declared_type;
+	std::unique_ptr<Expr> expression;
+
+
+	VariableDeclarationStmt(Token name, Token declared_type, std::unique_ptr<Expr> expression)
+		: name(std::move(name)), declared_type(std::move(declared_type)), expression(std::move(expression))
 	{
 	}
 };

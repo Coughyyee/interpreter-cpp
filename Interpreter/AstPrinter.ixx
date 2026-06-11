@@ -18,6 +18,17 @@ public:
             return visit(expressionStmt);
         }
 
+        if (auto var =
+            dynamic_cast<const VariableDeclarationStmt*>(stmt))
+        {
+            return std::format(
+                "(var {} -> {} {})",
+                var->name.lexeme,
+                var->declared_type.lexeme,
+                print(var->expression.get())
+            );
+        }
+
         if (auto printStmt =
             dynamic_cast<const PrintStmt*>(stmt))
         {

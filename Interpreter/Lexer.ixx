@@ -26,8 +26,12 @@ private:
 	// all keywords and their corresponding token types
     const std::unordered_map<std::string, TokenType> _keywords{
         {"out", TokenType::Out},
+        {"var", TokenType::Var},
         {"true", TokenType::True},
         {"false", TokenType::False},
+        {"bool", TokenType::Bool},
+        {"number", TokenType::Number},
+        {"string", TokenType::String},
 	};
 
 public:
@@ -105,6 +109,11 @@ std::expected<std::vector<Token>, Error> Lexer::scan_tokens()
             break;
 
         case '-':
+            if (peek() == '>') {
+                advance();
+				tokens.emplace_back(Token{TokenType::Arrow, "->", line, column});
+                break;
+            }
             tokens.emplace_back(Token{TokenType::Minus, "-", line, column});
             break;
 
@@ -113,6 +122,17 @@ std::expected<std::vector<Token>, Error> Lexer::scan_tokens()
             break;
 
         case '/':
+            // inline comments
+            if (peek() == '/') {
+                advance(); // consume 
+
+                while (!is_at_end() && peek() != '\n') 
+                    advance();
+
+                break;
+            }
+
+            // divide operator
             tokens.emplace_back(Token{TokenType::Divide, "/", line, column});
             break;
 
@@ -192,7 +212,7 @@ std::expected<std::vector<Token>, Error> Lexer::scan_tokens()
 
             // consume closing "
             advance();
-            tokens.emplace_back(Token{ TokenType::String, str, line, column });
+            tokens.emplace_back(Token{ TokenType::StringLiteral, str, line, column });
             break;
         }
 
@@ -249,7 +269,7 @@ Token Lexer::number()
     }
 
     return Token{
-        TokenType::Number,
+        TokenType::NumberLiteral,
         value,
         _line,
         _column

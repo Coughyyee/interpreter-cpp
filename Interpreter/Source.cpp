@@ -67,10 +67,16 @@ int main(int argc, char* argv[]) {
 	std::println();
 	std::println("Program output:");
 
-	Interpreter interpreter;
-	
-	for (auto& stmt : ast.value()) {
-		interpreter.interpret(stmt.get());
+	try {
+		Interpreter interpreter;
+		
+		for (auto& stmt : ast.value()) {
+			interpreter.interpret(stmt.get());
+		}
+	}
+	catch (const std::runtime_error& err) {
+		std::cerr << err.what();
+		return -1;
 	}
 
 	

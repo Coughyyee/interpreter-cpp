@@ -7,24 +7,27 @@ module;
 
 export module Interpreter;
 
-// TODO: implement customer error handling, implement types, variable declerations.
+// TODO: implement customer error handling.
 
 import Stmt;
 import Expr;
 import Value;
+import Token;
 
 export class Interpreter {
 private:
-	std::unordered_map<std::string, Value> _variables;
+	std::unordered_map<std::string, Variable> _variables;
 
 public:
 	void interpret(const Stmt* stmt);
 
 private:
 	Value evaluate(const Expr* expr);
+
+	bool type_matches(const Value& value, TokenType declared_type) const noexcept;
+	bool is_truthy(const Value& value) const noexcept;
 	double as_number(const Value& value) const;
 	std::string as_string(const Value& value) const;
-	bool is_truthy(const Value& value) const noexcept;
 };
 
 void Interpreter::interpret(const Stmt* stmt)
@@ -48,6 +51,41 @@ void Interpreter::interpret(const Stmt* stmt)
 		return;
 	}
 
+	if (auto var = dynamic_cast<const VariableDeclarationStmt*>(stmt)) {
+		auto it = _variables.find(var->name.lexeme);
+
+		// ensure variable isnt already been defined.
+		if (it != _variables.end()) {
+			throw std::runtime_error{
+				std::format(
+					"Variable already defined '{}'.",
+					var->name.lexeme
+				)
+			};
+		}
+
+		Value value = evaluate(var->expression.get());
+
+		// ensure type matches
+		if (!type_matches(value, var->declared_type.type)) {
+			throw std::runtime_error{
+				std::format(
+					"Expression returned incorrect data type. Expected '{}' return type.",
+					var->declared_type.lexeme
+				)
+			};
+		}
+
+		// creates the variable
+		_variables[var->name.lexeme] =
+		{
+			.declared_type = var->declared_type.type,
+			.value = value,
+		};
+
+		return;
+	}
+
 	if (auto expression_stmt = dynamic_cast<const ExpressionStmt*>(stmt)) {
 		evaluate(expression_stmt->expression.get());
 
@@ -62,9 +100,9 @@ Value Interpreter::evaluate(const Expr* expr)
 {
 	if (auto literal = dynamic_cast<const LiteralExpr*>(expr)) {
 		switch (literal->value.type) {
-		case TokenType::Number:
+		case TokenType::NumberLiteral:
 			return std::stod(literal->value.lexeme);
-		case TokenType::String:
+		case TokenType::StringLiteral:
 			return literal->value.lexeme;
 		case TokenType::True:
 			return true;
@@ -160,13 +198,34 @@ Value Interpreter::evaluate(const Expr* expr)
 		}
 		
 		// return stored value
-		return it->second;
+		return it->second.value;
 	}
 
 	if (auto assignment = dynamic_cast<const AssignmentExpr*>(expr)) {
 		Value value = evaluate(assignment->value.get());
 
-		_variables[assignment->name.lexeme] = value;
+		// variable exists
+		auto it = _variables.find(assignment->name.lexeme);
+		if (it == _variables.end()) {
+			throw std::runtime_error{
+				std::format(
+					"Undefined variable '{}'.",
+					assignment->name.lexeme
+				)
+			};
+		}
+
+		// ensure type matches
+		if (!type_matches(value, it->second.declared_type)) {
+			throw std::runtime_error{
+				std::format(
+					"Expression returned mismatched data type. Expected '{}' return type.",
+					it->second.get_type_name()
+				)
+			};
+		}
+
+		it->second.value = value;
 
 		return value;
 	}
@@ -174,22 +233,22 @@ Value Interpreter::evaluate(const Expr* expr)
 	throw std::runtime_error{ "Unknown expression type." };
 }
 
-double Interpreter::as_number(const Value& value) const
+bool Interpreter::type_matches(const Value& value, TokenType declared_type) const noexcept
 {
-	if (!std::holds_alternative<double>(value)) {
-		throw std::runtime_error{ "Expected a number." };
-	}
+	 switch (declared_type)
+		{
+		case TokenType::Number:
+			return std::holds_alternative<double>(value);
 
-	return std::get<double>(value);
-}
+		case TokenType::String:
+			return std::holds_alternative<std::string>(value);
 
-std::string Interpreter::as_string(const Value& value) const
-{
-	if (!std::holds_alternative<std::string>(value)) {
-		throw std::runtime_error{ "Expected a string." };
-	}
+		case TokenType::Bool:
+			return std::holds_alternative<bool>(value);
 
-	return std::get<std::string>(value);
+		default:
+			return false;
+		}
 }
 
 bool Interpreter::is_truthy(const Value& value) const noexcept
@@ -210,3 +269,22 @@ bool Interpreter::is_truthy(const Value& value) const noexcept
 
 	return false;
 }
+
+double Interpreter::as_number(const Value& value) const
+{
+	if (!std::holds_alternative<double>(value)) {
+		throw std::runtime_error{ "Expected a number." };
+	}
+
+	return std::get<double>(value);
+}
+
+std::string Interpreter::as_string(const Value& value) const
+{
+	if (!std::holds_alternative<std::string>(value)) {
+		throw std::runtime_error{ "Expected a string." };
+	}
+
+	return std::get<std::string>(value);
+}
+

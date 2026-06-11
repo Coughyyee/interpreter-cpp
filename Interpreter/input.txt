@@ -1,4 +1,5 @@
-x = "hi";
+var x -> number = 10;
+var y -> bool = true;
+x = false; // error
 out x;
-out true == true;
-out 1.32;
+out y;
