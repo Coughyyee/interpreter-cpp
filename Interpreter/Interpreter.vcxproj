@@ -130,10 +130,9 @@
     <ClCompile Include="AstPrinter.ixx" />
     <ClCompile Include="Error.ixx" />
     <ClCompile Include="Expr.ixx" />
-    <ClCompile Include="Lexer.cpp" />
+    <ClCompile Include="Interpreter.ixx" />
     <ClCompile Include="Lexer.ixx" />
     <ClCompile Include="Logger.ixx" />
-    <ClCompile Include="Parser.cpp" />
     <ClCompile Include="Parser.ixx" />
     <ClCompile Include="Source.cpp" />
     <ClCompile Include="Stmt.ixx" />

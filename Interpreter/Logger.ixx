@@ -22,17 +22,25 @@ export namespace Logger {
 	}
 
 	void log(const Error& error) {
-		size_t space_length = (error.column - 1) + std::string("[Line: ]: ").size() + std::to_string(error.line).size();
+		size_t space_length = (error.column - 1);
 		std::string error_arrow_spaces(space_length, ' ');
+		std::string line_number_spaces(std::to_string(error.line).size(), ' ');
 
-		std::print(stderr, 
-			"[Error Code {}]: {}\n\n[Line: {}]: {}\n{}^", 
-			//error.column, 
-			static_cast<int>(error.code),
-			error.message, 
-			error.line, 
-			error.source_line.empty() ? "" : error.source_line,
-			error_arrow_spaces
-		);
+		// TODO: implement StageCode display
+		std::println(stderr, "[Error Code {}]: {}", static_cast<int>(error.code), error.message);
+		std::println(stderr, "Line: {} - Column: {}", error.line, error.column);
+		std::println(stderr);
+		std::println(stderr, "{} | {}", error.line, error.source_line.empty() ? "" : error.source_line);
+		std::println(stderr, "{} | {}^", line_number_spaces, error_arrow_spaces);
+
+		//std::print(stderr, 
+		//	"[Error Code {}]: {}\n\n[Line: {}]: {}\n{}^", 
+		//	//error.column, 
+		//	static_cast<int>(error.code),
+		//	error.message, 
+		//	error.line, 
+		//	error.source_line.empty() ? "" : error.source_line,
+		//	error_arrow_spaces
+		//);
 	}
 }

@@ -5,8 +5,19 @@ export module Token;
 
 export enum class TokenType {
 	Number,
+	String,
+	Identifier,
+
+	Equal,
 
 	Bang,
+	BangEqual,
+	EqualEqual,
+	MoreThan,
+	MoreThanEqual,
+	LessThan,
+	LessThanEqual,
+
 	Plus,
 	Minus,
 	Multiply,
@@ -18,7 +29,6 @@ export enum class TokenType {
 	RightBrace,
 
 	Print,
-	Identifier,
 
 	Semicolon,
 

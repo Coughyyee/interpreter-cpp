@@ -1,22 +1,33 @@
 ﻿How To Read Grammer:
+"<value>" = character(s) expected.
 → = something consists of this.
 () = grouping.
 | = Or.
 * = 0 or more times.
 ; = end.
+IDENTIFIER = variable name token.
+NUMBER = numeric literal token.
+EOF = end-of-file token.
 
 Grammer:
 program → statement* EOF ;
 
-statement → 
-        printStatement 
-        | expressionStatement ;
+statement → printStatement 
+            | expressionStatement ;
 
 printStatement → "print" expression ";" ;
 
 expressionStatement → expression ";" ;
 
-expression → term ;
+expression → assignment ;
+
+assignment → IDENTIFIER "=" assignment | equality ;
+
+equality → comparison
+        ( ("==" | "!=") comparison )* ;
+
+comparison → term
+        ( (">" | ">=" | "<" | "<=") term )* ;
 
 term → factor
        ( ("+" | "-") factor )* ;
@@ -28,4 +39,6 @@ unary → ("!" | "-") unary
       | primary ;
 
 primary → NUMBER
+        | IDENTIFIER
+        | STRING
         | "(" expression ")" ;

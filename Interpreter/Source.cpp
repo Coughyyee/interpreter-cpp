@@ -8,6 +8,7 @@ import Logger;
 import Lexer;
 import Parser;
 import AstPrinter;
+import Interpreter;
 
 static std::expected<std::string, std::string> read_file(const char* path) {
 	std::ifstream file(path);
@@ -53,11 +54,23 @@ int main(int argc, char* argv[]) {
 
 	AstPrinter printer;
 
+	std::println("AST Printer:");
 	for (auto& stmt : ast.value()) {
 		std::println(
 			"{}",
 			printer.print(stmt.get())
 		);
+	}
+
+	std::println();
+	std::println("-------");
+	std::println();
+	std::println("Program output:");
+
+	Interpreter interpreter;
+	
+	for (auto& stmt : ast.value()) {
+		interpreter.interpret(stmt.get());
 	}
 
 	
