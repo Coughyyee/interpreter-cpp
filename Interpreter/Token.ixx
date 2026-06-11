@@ -28,7 +28,9 @@ export enum class TokenType {
 	LeftBrace,
 	RightBrace,
 
-	Print,
+	// Keywords
+	// Keyword lexeme map found in Lexer.ixx
+	Out, // print 
 	True,
 	False,
 

@@ -7,7 +7,7 @@ module;
 
 export module Interpreter;
 
-// TODO: implement customer error handling, implement types.
+// TODO: implement customer error handling, implement types, variable declerations.
 
 import Stmt;
 import Expr;

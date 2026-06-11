@@ -1,3 +1,4 @@
 x = "hi";
-print x;
-print true == true;
+out x;
+out true == true;
+out 1.32;

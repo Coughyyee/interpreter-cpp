@@ -15,7 +15,7 @@ program → statement* EOF ;
 statement → printStatement 
             | expressionStatement ;
 
-printStatement → "print" expression ";" ;
+printStatement → "out" expression ";" ;
 
 expressionStatement → expression ";" ;
 

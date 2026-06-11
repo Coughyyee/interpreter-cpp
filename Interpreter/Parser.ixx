@@ -82,7 +82,7 @@ std::expected<std::vector<std::unique_ptr<Stmt>>, Error> Parser::parse()
 
 std::unique_ptr<Stmt> Parser::statement()
 {
-	if (match(TokenType::Print)) {
+	if (match(TokenType::Out)) {
 		return print_statement();
 	}
 

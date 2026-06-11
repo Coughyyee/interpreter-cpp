@@ -24,8 +24,8 @@ private:
 	size_t _max;
 
 	// all keywords and their corresponding token types
-    std::unordered_map<std::string, TokenType> _keywords{
-        {"print", TokenType::Print},
+    const std::unordered_map<std::string, TokenType> _keywords{
+        {"out", TokenType::Out},
         {"true", TokenType::True},
         {"false", TokenType::False},
 	};
