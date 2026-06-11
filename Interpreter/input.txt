@@ -1,5 +1,3 @@
 var x -> number = 10;
 var y -> bool = true;
-x = false; // error
-out x;
-out y;
+out 10 / 0;

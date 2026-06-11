@@ -155,6 +155,9 @@ Value Interpreter::evaluate(const Expr* expr)
 			// todo: allow string * number for repeating strings ?
 			return as_number(left) * as_number(right);
 		case TokenType::Divide:
+			if (as_number(left) == 0 || as_number(right) == 0) {
+				throw std::runtime_error{ "Division by 0 is forbidden." };
+			}
 			return as_number(left) / as_number(right);
 
 		default:
