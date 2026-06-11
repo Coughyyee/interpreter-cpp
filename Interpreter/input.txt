@@ -1,2 +1,3 @@
 x = "hi";
 print x;
+print true == true;

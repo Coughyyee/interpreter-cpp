@@ -66,9 +66,12 @@ Value Interpreter::evaluate(const Expr* expr)
 		switch (literal->value.type) {
 		case TokenType::Number:
 			return std::stod(literal->value.lexeme);
-			
 		case TokenType::String:
-			return literal->value.lexeme	;
+			return literal->value.lexeme;
+		case TokenType::True:
+			return true;
+		case TokenType::False:
+			return false;
 
 		default:
 			throw std::runtime_error{ "Unknown literal type." };
@@ -86,7 +89,7 @@ Value Interpreter::evaluate(const Expr* expr)
 		case TokenType::BangEqual:
 			return left != right;
 
-		// Comparison operators
+			// Comparison operators - only work for numbers, throw error otherwise
 		case TokenType::MoreThan:
 			return as_number(left) > as_number(right);
 		case TokenType::MoreThanEqual:
@@ -98,7 +101,7 @@ Value Interpreter::evaluate(const Expr* expr)
 
 		// Mathematical operators
 		case TokenType::Plus: {
-			// number + number
+			// Numbers like numbers. Concatination for strings. Else throw error.
 			if (std::holds_alternative<double>(left) &&
 				std::holds_alternative<double>(right)) {
 				return std::get<double>(left) + std::get<double>(right);
@@ -128,6 +131,7 @@ Value Interpreter::evaluate(const Expr* expr)
 
 		switch (unary->op.type) {
 		case TokenType::Minus: {
+			// Numbers only.
 			if (!std::holds_alternative<double>(value)) {
 				throw std::runtime_error{ "Invalid operand for '-'. Operand must be a number." };
 			}
@@ -201,6 +205,7 @@ bool Interpreter::is_truthy(const Value& value) const
 		return std::get<double>(value) != 0;
 	}
 
+	// empty string = false, else true
 	if (std::holds_alternative<std::string>(value)) {
 		return !std::get<std::string>(value).empty();
 	}

@@ -248,23 +248,20 @@ std::unique_ptr<Expr> Parser::unary()
 
 std::unique_ptr<Expr> Parser::primary()
 {
-	// Identifiers
 	if (match(TokenType::Identifier)) {
 		return std::make_unique<VariableExpr>(previous());
 	}
-
-	// Just a number
-	if (match(TokenType::Number)) {
-		return std::make_unique<LiteralExpr>(
-			previous()
-		);
+	else if (match(TokenType::Number)) {
+		return std::make_unique<LiteralExpr>(previous());
 	}
-
-	// String
-	if (match(TokenType::String)) {
-		return std::make_unique<LiteralExpr>(
-			previous()
-		);
+	else if (match(TokenType::String)) {
+		return std::make_unique<LiteralExpr>(previous());
+	}
+	else if (match(TokenType::True)) {
+		return std::make_unique<LiteralExpr>(previous());
+	}
+	else if (match(TokenType::False)) {
+		return std::make_unique<LiteralExpr>(previous());
 	}
 
 	// Group start (...)

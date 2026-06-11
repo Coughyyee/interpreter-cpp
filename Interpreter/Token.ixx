@@ -29,6 +29,8 @@ export enum class TokenType {
 	RightBrace,
 
 	Print,
+	True,
+	False,
 
 	Semicolon,
 

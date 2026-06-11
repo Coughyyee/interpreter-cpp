@@ -5,6 +5,7 @@ module;
 #include <expected>
 #include <ranges>
 #include <format>
+#include <unordered_map>
 
 export module Lexer;
 
@@ -21,6 +22,13 @@ private:
 	size_t _line{ 1 };
 	size_t _column{ 0 };
 	size_t _max;
+
+	// all keywords and their corresponding token types
+    std::unordered_map<std::string, TokenType> _keywords{
+        {"print", TokenType::Print},
+        {"true", TokenType::True},
+        {"false", TokenType::False},
+	};
 
 public:
 	Lexer(const std::string& source) : _source{ source }, _max{ source.size() } {}
@@ -261,14 +269,14 @@ Token Lexer::identifier()
         text.push_back(advance());
     }
 
-    // FUTURE: map of all keywords, loop over and find to create token
-    if (text == "print") {
-        return Token{
-            TokenType::Print,
-            text,
-            _line,
-            _column
-        };
+	// iterate over map and return corrisponding token if found. Else return identifier token.
+    if (auto it = _keywords.find(text); it != _keywords.end()) {
+		return Token{
+			it->second,
+			text,
+			_line,
+			_column
+		};
     }
 
     return Token{

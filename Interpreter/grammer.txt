@@ -39,6 +39,8 @@ unary → ("!" | "-") unary
       | primary ;
 
 primary → NUMBER
-        | IDENTIFIER
         | STRING
+        | TRUE
+        | FALSE
+        | IDENTIFIER
         | "(" expression ")" ;
