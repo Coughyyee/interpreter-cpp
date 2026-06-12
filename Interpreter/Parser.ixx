@@ -13,17 +13,18 @@ import Expr;
 import Exceptions;
 import Error;
 import Stmt;
+import SourceUtils;
 
 export class Parser {
 private:
-	const std::string& _source;
+	std::string _source;
 	std::vector<Token> _tokens;
 	size_t _current{ 0 };
 	size_t _max;
 
 public:
-	Parser(const std::string& source, std::vector<Token>&& tokens)
-		: _source(source), _tokens(std::move(tokens)), _max(_tokens.size())
+	Parser(std::string source, std::vector<Token>&& tokens)
+		: _source(std::move(source)), _tokens(std::move(tokens)), _max(_tokens.size())
 	{
 	}
 	
@@ -54,7 +55,6 @@ private:
 	bool check(TokenType type) const;
 	Token consume(TokenType type, ErrorCode code, const std::string& message);
 	Token consume(std::initializer_list<TokenType> types, ErrorCode code, const std::string& message);
-	std::string get_current_line() const;
 };
 
 
@@ -76,7 +76,7 @@ std::expected<std::vector<std::unique_ptr<Stmt>>, Error> Parser::parse()
 				.message = err.what(),
 				.line = peek().line,
 				.column = peek().column,
-				.source_line = get_current_line(),
+				.source_line = get_line_from_source(_source, peek().line),
 			}
 			);
 	}
@@ -99,6 +99,8 @@ std::unique_ptr<Stmt> Parser::variable_declaration_statement()
 {
 	// var x -> int = 10;
 
+	Token keyword = previous();
+
 	Token name = consume(TokenType::Identifier, ErrorCode::EXPECTED, "Expected variable name.");
 	
 	consume(TokenType::Arrow, ErrorCode::EXPECTED, "Expected '->' after variable name.");
@@ -119,10 +121,12 @@ std::unique_ptr<Stmt> Parser::variable_declaration_statement()
 
 	consume(TokenType::Semicolon, ErrorCode::EXPECTED, "Expected ';' after expression.");
 
-	return std::make_unique<VariableDeclarationStmt>(name, declared_type, std::move(expr));
+	return std::make_unique<VariableDeclarationStmt>(keyword, name, declared_type, std::move(expr));
 }
 
 std::unique_ptr<Stmt> Parser::print_statement() {
+	Token keyword = previous(); 
+
 	auto value = expression();
 
 	consume(
@@ -131,10 +135,12 @@ std::unique_ptr<Stmt> Parser::print_statement() {
 		"Expected ';' after value."
 	);
 
-	return std::make_unique<PrintStmt>(std::move(value));
+	return std::make_unique<PrintStmt>(keyword, std::move(value));
 }
 
 std::unique_ptr<Stmt> Parser::expression_statement() {
+	Token start = peek();
+
 	auto expr = expression();
 
 	consume(
@@ -143,7 +149,7 @@ std::unique_ptr<Stmt> Parser::expression_statement() {
 		"Expected ';' after value."
 	);
 
-	return std::make_unique<ExpressionStmt>(std::move(expr));
+	return std::make_unique<ExpressionStmt>(start, std::move(expr));
 }
 
 std::unique_ptr<Expr> Parser::expression()
@@ -395,36 +401,3 @@ Token Parser::consume(std::initializer_list<TokenType> types, ErrorCode code, co
 	throw ParserException(code, message);
 }
 
-std::string Parser::get_current_line() const
-{
-	size_t targetLine = peek().line;
-
-	size_t currentLine = 1;
-	size_t start = 0;
-
-	for (size_t i = 0; i < _source.size(); ++i)
-	{
-		if (currentLine == targetLine)
-		{
-			start = i;
-			break;
-		}
-
-		if (_source[i] == '\n')
-		{
-			++currentLine;
-		}
-	}
-
-	size_t end = start;
-
-	while (
-		end < _source.size() &&
-		_source[end] != '\n'
-		)
-	{
-		++end;
-	}
-
-	return _source.substr(start, end - start);
-}

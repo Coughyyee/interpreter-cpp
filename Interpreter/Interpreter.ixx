@@ -4,24 +4,31 @@ module;
 #include <unordered_map>
 #include <format>
 #include <variant>
+#include <expected>
 
 export module Interpreter;
-
-// TODO: implement customer error handling.
 
 import Stmt;
 import Expr;
 import Value;
 import Token;
+import Exceptions;
+import Error;
+import SourceUtils;
 
 export class Interpreter {
 private:
+	std::string _source;
+
 	std::unordered_map<std::string, Variable> _variables;
 
 public:
-	void interpret(const Stmt* stmt);
+	explicit Interpreter(std::string source) : _source(std::move(source)) {}
+
+	std::expected<void, Error> interpret(const Stmt* stmt);
 
 private:
+	void execute(const Stmt* stmt);
 	Value evaluate(const Expr* expr);
 
 	bool type_matches(const Value& value, TokenType declared_type) const noexcept;
@@ -30,8 +37,40 @@ private:
 	std::string as_string(const Value& value) const;
 };
 
-void Interpreter::interpret(const Stmt* stmt)
+std::expected<void, Error> Interpreter::interpret(const Stmt* stmt)
 {
+	try {
+		execute(stmt);
+
+		return {};
+	}
+	catch (const RuntimeException& err) {
+		return std::unexpected(
+			Error{
+				.code = err.code(),
+				.message = err.what(),
+				.line = err.token().line,
+				.column = err.token().column,
+				.source_line = get_line_from_source(_source, err.token().line),
+			}
+		);
+	}
+	catch (const std::runtime_error& err) {
+		// other errors that might occur
+		// temp -> remove this in future.
+		return std::unexpected(
+			Error{
+				.code = ErrorCode::UNKNOWN,
+				.message = err.what(),
+				.line = 0,
+				.column = 0,
+				.source_line = "",
+			}
+		);
+	}
+}
+
+void Interpreter::execute(const Stmt* stmt) {
 	if (auto print_stmt = dynamic_cast<const PrintStmt*>(stmt)) {
 		Value value = evaluate(print_stmt->expression.get());
 
@@ -45,7 +84,11 @@ void Interpreter::interpret(const Stmt* stmt)
 			std::print("{}", std::get<bool>(value) ? "true" : "false");
 		}
 		else {
-			throw std::runtime_error{ "Unknown value type." };
+			throw RuntimeException(
+				ErrorCode::UNKNOWN,
+				"Unknown type.",
+				print_stmt->keyword
+			);
 		}
 
 		return;
@@ -56,24 +99,28 @@ void Interpreter::interpret(const Stmt* stmt)
 
 		// ensure variable isnt already been defined.
 		if (it != _variables.end()) {
-			throw std::runtime_error{
+			throw RuntimeException(
+				ErrorCode::ALREADY_DEFINED_VARIABLE,
 				std::format(
 					"Variable already defined '{}'.",
 					var->name.lexeme
-				)
-			};
+				),
+				var->name
+			);
 		}
 
 		Value value = evaluate(var->expression.get());
 
 		// ensure type matches
 		if (!type_matches(value, var->declared_type.type)) {
-			throw std::runtime_error{
+			throw RuntimeException(
+				ErrorCode::TYPE_MISMATCH,
 				std::format(
 					"Expression returned incorrect data type. Expected '{}' return type.",
 					var->declared_type.lexeme
-				)
-			};
+				),
+				var->name
+			);
 		}
 
 		// creates the variable
@@ -93,7 +140,9 @@ void Interpreter::interpret(const Stmt* stmt)
 		return;
 	}
 
+	// Todo: come back to
 	throw std::runtime_error{ "Unknown statement type." };
+
 }
 
 Value Interpreter::evaluate(const Expr* expr)
@@ -110,7 +159,11 @@ Value Interpreter::evaluate(const Expr* expr)
 			return false;
 
 		default:
-			throw std::runtime_error{ "Unknown literal type." };
+			throw RuntimeException(
+				ErrorCode::UNKNOWN,
+				"Unknown literal type.",
+				literal->value
+			);
 		}
 	}
 
@@ -118,50 +171,76 @@ Value Interpreter::evaluate(const Expr* expr)
 		Value left = evaluate(binary->left.get());
 		Value right = evaluate(binary->right.get());
 
-		switch (binary->op.type) {
-		// Equality operators
-		case TokenType::EqualEqual:
-			return left == right;
-		case TokenType::BangEqual:
-			return left != right;
+		try {
+			switch (binary->op.type) {
+			// Equality operators
+			case TokenType::EqualEqual:
+				return left == right;
+			case TokenType::BangEqual:
+				return left != right;
 
-			// Comparison operators - only work for numbers, throw error otherwise
-		case TokenType::MoreThan:
-			return as_number(left) > as_number(right);
-		case TokenType::MoreThanEqual:
-			return as_number(left) >= as_number(right);
-		case TokenType::LessThan:
-			return as_number(left) < as_number(right);
-		case TokenType::LessThanEqual:
-			return as_number(left) <= as_number(right);
+				// Comparison operators - only work for numbers, throw error otherwise
+			case TokenType::MoreThan:
+				return as_number(left) > as_number(right);
+			case TokenType::MoreThanEqual:
+				return as_number(left) >= as_number(right);
+			case TokenType::LessThan:
+				return as_number(left) < as_number(right);
+			case TokenType::LessThanEqual:
+				return as_number(left) <= as_number(right);
 
-		// Mathematical operators
-		case TokenType::Plus: {
-			// Numbers like numbers. Concatination for strings. Else throw error.
-			if (std::holds_alternative<double>(left) &&
-				std::holds_alternative<double>(right)) {
-				return std::get<double>(left) + std::get<double>(right);
+			// Mathematical operators
+			case TokenType::Plus: {
+				// Numbers like numbers. Concatination for strings. Else throw error.
+				if (std::holds_alternative<double>(left) &&
+					std::holds_alternative<double>(right)) {
+					return std::get<double>(left) + std::get<double>(right);
+				}
+				else if (std::holds_alternative<std::string>(left) &&
+					std::holds_alternative<std::string>(right)) {
+					return std::get<std::string>(left) + std::get<std::string>(right);
+				}
+
+				throw RuntimeException(
+					ErrorCode::INVALID_OPERANDS,
+					"Invalid operands for '+'. Both operands must be either numbers or strings.",
+					binary->op
+				);
 			}
-			else if (std::holds_alternative<std::string>(left) &&
-				std::holds_alternative<std::string>(right)) {
-				return std::get<std::string>(left) + std::get<std::string>(right);
+			case TokenType::Minus:
+				return as_number(left) - as_number(right);
+			case TokenType::Multiply:
+				// todo: allow string * number for repeating strings ?
+				return as_number(left) * as_number(right);
+			case TokenType::Divide:
+				if (as_number(left) == 0 || as_number(right) == 0) {
+					// TODO: pass left or right depending on which ones 0
+					throw RuntimeException(
+						ErrorCode::DIVISION_BY_0,
+						"Division by 0 is forbidden.",
+						binary->op
+					);
+				}
+				return as_number(left) / as_number(right);
+
+			default:
+				throw RuntimeException(
+					ErrorCode::UNKNOWN,
+					"Unkown binary operator.",
+					binary->op
+				);
 			}
 
-			throw std::runtime_error{ "Invalid operands for '+'. Both operands must be either numbers or strings." };
 		}
-		case TokenType::Minus:
-			return as_number(left) - as_number(right);
-		case TokenType::Multiply:
-			// todo: allow string * number for repeating strings ?
-			return as_number(left) * as_number(right);
-		case TokenType::Divide:
-			if (as_number(left) == 0 || as_number(right) == 0) {
-				throw std::runtime_error{ "Division by 0 is forbidden." };
-			}
-			return as_number(left) / as_number(right);
+		catch (const std::logic_error& err) {
+			// thrown from as_number().
 
-		default:
-			throw std::runtime_error{ "Unknown binary operator." };
+			// re-throw with custom error class
+			throw RuntimeException(
+				ErrorCode::TYPE_MISMATCH,
+				err.what(),
+				binary->op
+			);
 		}
 	}
 
@@ -172,7 +251,11 @@ Value Interpreter::evaluate(const Expr* expr)
 		case TokenType::Minus: {
 			// Numbers only.
 			if (!std::holds_alternative<double>(value)) {
-				throw std::runtime_error{ "Invalid operand for '-'. Operand must be a number." };
+				throw RuntimeException(
+					ErrorCode::INVALID_OPERAND,
+					"Invalid operand for '-'. Operand must be a number.",
+					unary->op
+				);
 			}
 
 			return -std::get<double>(value);
@@ -183,7 +266,11 @@ Value Interpreter::evaluate(const Expr* expr)
 			return !is_truthy(value);
 
 		default:
-			throw std::runtime_error{ "Unknown unary operator." };
+			throw RuntimeException(
+				ErrorCode::UNKNOWN,
+				"Unkown unary operator.",
+				unary->op
+			);
 		}
 	}
 
@@ -197,7 +284,11 @@ Value Interpreter::evaluate(const Expr* expr)
 
 		// doesnt exist
 		if (it == _variables.end()) {
-			throw std::runtime_error{ std::format("Undefined variable '{}'.", variable->name.lexeme) };
+			throw RuntimeException(
+				ErrorCode::UNDEFINED_VARIABLE,
+				std::format("Undefined variable '{}'.", variable->name.lexeme),
+				variable->name
+			);
 		}
 		
 		// return stored value
@@ -210,22 +301,26 @@ Value Interpreter::evaluate(const Expr* expr)
 		// variable exists
 		auto it = _variables.find(assignment->name.lexeme);
 		if (it == _variables.end()) {
-			throw std::runtime_error{
+			throw RuntimeException(
+				ErrorCode::UNDEFINED_VARIABLE,
 				std::format(
 					"Undefined variable '{}'.",
 					assignment->name.lexeme
-				)
-			};
+				),
+				assignment->name
+			);
 		}
 
 		// ensure type matches
 		if (!type_matches(value, it->second.declared_type)) {
-			throw std::runtime_error{
+			throw RuntimeException(
+				ErrorCode::TYPE_MISMATCH,
 				std::format(
 					"Expression returned mismatched data type. Expected '{}' return type.",
 					it->second.get_type_name()
-				)
-			};
+				),
+				assignment->name
+			);
 		}
 
 		it->second.value = value;
@@ -233,6 +328,7 @@ Value Interpreter::evaluate(const Expr* expr)
 		return value;
 	}
 
+	// Todo: come back to
 	throw std::runtime_error{ "Unknown expression type." };
 }
 
@@ -276,7 +372,7 @@ bool Interpreter::is_truthy(const Value& value) const noexcept
 double Interpreter::as_number(const Value& value) const
 {
 	if (!std::holds_alternative<double>(value)) {
-		throw std::runtime_error{ "Expected a number." };
+		throw std::logic_error{ "Expected a number." };
 	}
 
 	return std::get<double>(value);
@@ -285,7 +381,7 @@ double Interpreter::as_number(const Value& value) const
 std::string Interpreter::as_string(const Value& value) const
 {
 	if (!std::holds_alternative<std::string>(value)) {
-		throw std::runtime_error{ "Expected a string." };
+		throw std::logic_error{ "Expected a string." };
 	}
 
 	return std::get<std::string>(value);

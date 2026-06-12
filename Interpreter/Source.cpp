@@ -34,7 +34,9 @@ int main(int argc, char* argv[]) {
 		return -1;
 	}
 
-	Lexer lexer(file.value());
+	auto source = file.value();
+
+	Lexer lexer(source);
 	auto tokens = lexer.scan_tokens();
 
 	// lexer error
@@ -43,7 +45,7 @@ int main(int argc, char* argv[]) {
 		return -1;
 	}
 
-	Parser parser(file.value(), std::move(tokens.value()));
+	Parser parser(source, std::move(tokens.value()));
 	auto ast = parser.parse();
 
 	// parser error
@@ -67,16 +69,16 @@ int main(int argc, char* argv[]) {
 	std::println();
 	std::println("Program output:");
 
-	try {
-		Interpreter interpreter;
-		
-		for (auto& stmt : ast.value()) {
-			interpreter.interpret(stmt.get());
+	Interpreter interpreter(source);
+	
+	for (auto& stmt : ast.value()) {
+		auto result = interpreter.interpret(stmt.get());
+
+		// interpreter error
+		if (!result) {
+			Logger::log(result.error());
+			return -1;
 		}
-	}
-	catch (const std::runtime_error& err) {
-		std::cerr << err.what();
-		return -1;
 	}
 
 	

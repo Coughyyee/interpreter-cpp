@@ -11,17 +11,17 @@ export module Lexer;
 
 import Error;
 import Token;
+import SourceUtils;
 
 /*
 Lexer involves taking our source into tokens.
 */
 export class Lexer {
 private:
-	const std::string& _source;
+	std::string _source;
 	size_t _current{ 0 };
 	size_t _line{ 1 };
 	size_t _column{ 0 };
-	size_t _max;
 
 	// all keywords and their corresponding token types
     const std::unordered_map<std::string, TokenType> _keywords{
@@ -35,7 +35,7 @@ private:
 	};
 
 public:
-	Lexer(const std::string& source) : _source{ source }, _max{ source.size() } {}
+	explicit Lexer(std::string source) : _source(std::move(source)) {}
 
 	std::expected<std::vector<Token>, Error> scan_tokens();
 
@@ -54,8 +54,6 @@ private:
 	bool is_digit(const char value) const noexcept;
 	//bool is_numeric(const std::string& value) { return std::all_of(value.begin(), value.end(), is_digit); }
 	bool is_whitespace(const char c) const noexcept;
-
-	std::string get_current_line() const;
 };
 
 std::expected<std::vector<Token>, Error> Lexer::scan_tokens()
@@ -160,7 +158,7 @@ std::expected<std::vector<Token>, Error> Lexer::scan_tokens()
             // store a string until a ending " else throw error
             std::string str = "";
 
-            while (peek() != '"' && !is_at_end()) {
+            while (!is_at_end() && peek() != '"') {
 				char c = advance();
 
                 // special string escape characters
@@ -205,7 +203,7 @@ std::expected<std::vector<Token>, Error> Lexer::scan_tokens()
                         .message = "Unterminated string.",
                         .line = line,
                         .column = column,
-                        .source_line = get_current_line(),
+                        .source_line = get_line_from_source(_source, line),
                     }
                     );
             }
@@ -237,7 +235,7 @@ std::expected<std::vector<Token>, Error> Lexer::scan_tokens()
                     ),
                     .line = line,
                     .column = column,
-                    .source_line = get_current_line(),
+					.source_line = get_line_from_source(_source, line),
                 }
             );
         }
@@ -282,7 +280,7 @@ Token Lexer::identifier()
 
     text.push_back(previous());
 
-    while (is_alphanumeric(peek())) {
+    while (!is_at_end() && is_alphanumeric(peek())) {
         text.push_back(advance());
     }
 
@@ -359,7 +357,7 @@ bool Lexer::is_alphanumeric(char c) const noexcept {
 
 bool Lexer::is_at_end() const noexcept {
 	// current == max -> final char
-	return _current == _max;
+	return _current >= _source.size();
 }
 
 bool Lexer::is_digit(const char value) const noexcept
@@ -370,26 +368,4 @@ bool Lexer::is_digit(const char value) const noexcept
 bool Lexer::is_whitespace(const char c) const noexcept
 {
 	return std::isspace(static_cast<unsigned char>(c)); 
-}
-
-std::string Lexer::get_current_line() const
-{
-    if (_source.empty()) {
-        return "";
-    }
-
-    size_t pos = std::min(_current, _source.size() - 1);
-	size_t start = pos;
-
-	while (start > 0 && _source[start - 1] != '\n') {
-		--start;
-	}
-
-	size_t end = pos;
-
-	while (end < _source.size() && _source[end] != '\n') {
-		++end;
-	}
-
-	return _source.substr(start, end - start);
 }

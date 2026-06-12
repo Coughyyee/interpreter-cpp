@@ -13,31 +13,33 @@ export struct Stmt {
 };
 
 export struct ExpressionStmt : Stmt {
+	Token keyword;
 	std::unique_ptr<Expr> expression;
 
-	ExpressionStmt(std::unique_ptr<Expr> expression)
-		: expression(std::move(expression))
+	ExpressionStmt(Token keyword, std::unique_ptr<Expr> expression)
+		: keyword(std::move(keyword)), expression(std::move(expression))
 	{
 	}
 };
 
 export struct PrintStmt : Stmt {
+	Token keyword;
 	std::unique_ptr<Expr> expression;
 
-	PrintStmt(std::unique_ptr<Expr> expression)
-		: expression(std::move(expression))
+	PrintStmt(Token keyword, std::unique_ptr<Expr> expression)
+		: keyword(std::move(keyword)), expression(std::move(expression))
 	{
 	}
 };
 
 export struct VariableDeclarationStmt : Stmt {
+	Token keyword;
 	Token name;
 	Token declared_type;
 	std::unique_ptr<Expr> expression;
 
-
-	VariableDeclarationStmt(Token name, Token declared_type, std::unique_ptr<Expr> expression)
-		: name(std::move(name)), declared_type(std::move(declared_type)), expression(std::move(expression))
+	VariableDeclarationStmt(Token keyword, Token name, Token declared_type, std::unique_ptr<Expr> expression)
+		: keyword(std::move(keyword)), name(std::move(name)), declared_type(std::move(declared_type)), expression(std::move(expression))
 	{
 	}
 };
