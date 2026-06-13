@@ -44,7 +44,6 @@ export enum class TokenType {
 	False,
 	// Keywords End
 
-
 	Semicolon,
 
 	Eof
