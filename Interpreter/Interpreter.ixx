@@ -167,6 +167,26 @@ void Interpreter::execute(const Stmt* stmt) {
 		return;
 	}
 
+	if (auto if_stmt = dynamic_cast<const IfStmt*>(stmt)) {
+		auto condition_result = evaluate(if_stmt->condition.get());
+
+		if (is_truthy(condition_result)) {
+			execute(if_stmt->then_branch.get());
+		}
+		else if (if_stmt->else_branch.has_value()) {
+			execute(if_stmt->else_branch.value().get());
+		}
+		else {
+			throw RuntimeException(
+				ErrorCode::IS_NOT_TRUTHY,
+				"If condition expression doesn't evaluate to a boolean.",
+				if_stmt->keyword
+			);
+		}
+
+		return;
+	}
+
 	// Todo: come back to
 	throw std::runtime_error{ "Unknown statement type." };
 
@@ -192,6 +212,19 @@ Value Interpreter::evaluate(const Expr* expr)
 				literal->value
 			);
 		}
+	}
+
+	if (auto logical = dynamic_cast<const LogicalExpr*>(expr)) {
+		Value left = evaluate(logical->left.get());
+
+		if (logical->op.type == TokenType::Or) {
+			if (is_truthy(left)) return left;
+		}
+		else {
+			if (!is_truthy(left)) return left;
+		}
+
+		return evaluate(logical->right.get());
 	}
 
 	if (auto binary = dynamic_cast<const BinaryExpr*>(expr)) {

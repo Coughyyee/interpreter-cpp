@@ -1,54 +1,62 @@
 ﻿How To Read Grammer:
 "<value>" = character(s) expected.
-→ = something consists of this.
+-> = something consists of this.
 () = grouping.
 | = Or.
 * = 0 or more times.
+? = 0 or 1 time.
 ; = end.
 IDENTIFIER = variable name token.
-NUMBER = numeric literal token.
 EOF = end-of-file token.
 
 Grammer:
-program → statement* EOF ;
+program -> statement* EOF ;
 
 
-statement → variableDeclaration
+statement -> variableDeclaration
+            | ifStatement
             | printStatement 
             | expressionStatement 
-            | block ;
+            | blockStatement ;
 
-block → "{" statement* "}" ;
+blockStatement -> "{" statement* "}" ;
 
-variableDeclaration → 
+variableDeclaration -> 
         "var" IDENTIFIER 
         "->" ( "number" | "string" | "bool" ) // | IDENTIFIER in future for obj types ect 
         "=" expression ";" ;
 
-printStatement → "out" expression ";" ;
+ifStatement -> "if" "(" expression ")" statement
+            ( "else" statement )? ;
 
-expressionStatement → expression ";" ;
+printStatement -> "out" expression ";" ;
 
-expression → assignment ;
+expressionStatement -> expression ";" ;
 
-assignment → IDENTIFIER "=" assignment | equality ;
+expression -> assignment ;
 
-equality → comparison
+assignment -> IDENTIFIER "=" assignment | equality ;
+
+logicOr -> logic_and ( "or" logic_and )* ;
+
+logicAnd -> equality ( "and" equality )* ;
+
+equality -> comparison
         ( ("==" | "!=") comparison )* ;
 
-comparison → term
+comparison -> term
         ( (">" | ">=" | "<" | "<=") term )* ;
 
-term → factor
+term -> factor
        ( ("+" | "-") factor )* ;
 
-factor → unary
+factor -> unary
          ( ("*" | "/") unary )* ;
 
-unary → ("!" | "-") unary
+unary -> ("!" | "-") unary
       | primary ;
 
-primary → NUMBER
+primary -> NUMBER
         | STRING
         | TRUE
         | FALSE

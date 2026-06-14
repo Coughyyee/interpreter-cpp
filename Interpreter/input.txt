@@ -1,14 +1,7 @@
 var x -> number = 10;
 
-{ 
-	out x;
-	{
-		var y -> number = 4;
-		out y;
-	}
+if (x == 10 and 1 == 1) {
+	out true;
+} else {
+	out false;
 }
-
-out x;
-out y;
-
-

@@ -5,6 +5,7 @@ module;
 #include <expected>
 #include <string_view>
 #include <format>
+#include <optional>
 
 export module Parser;
 
@@ -31,12 +32,16 @@ public:
 	std::expected<std::vector<std::unique_ptr<Stmt>>, Error> parse();
 
 	std::unique_ptr<Stmt> statement();
+	std::unique_ptr<Stmt> loop_statement();
+	std::unique_ptr<Stmt> if_statement();
 	std::unique_ptr<Stmt> variable_declaration_statement();
 	std::unique_ptr<Stmt> print_statement();
 	std::unique_ptr<Stmt> expression_statement();
 	std::unique_ptr<Stmt> block_statement();
 	std::unique_ptr<Expr> expression();
 	std::unique_ptr<Expr> assignment();
+	std::unique_ptr<Expr> or_expression();
+	std::unique_ptr<Expr> and_expression();
 	std::unique_ptr<Expr> equality();
 	std::unique_ptr<Expr> comparison();
 	std::unique_ptr<Expr> term();
@@ -97,7 +102,65 @@ std::unique_ptr<Stmt> Parser::statement()
 		return print_statement();
 	}
 
+	if (match(TokenType::Loop)) {
+		return loop_statement();
+	}
+
+	if (match(TokenType::If)) {
+		return if_statement();
+	}
+
 	return expression_statement();
+}
+
+std::unique_ptr<Stmt> Parser::loop_statement()
+{
+	Token keyword = previous(); // 'loop'
+	
+	// start of block
+	if (peek().type == TokenType::LeftBrace) {
+
+	}
+	else {
+		// expecting a expression condition that returns a bool type
+		auto expression = equality();
+	}
+
+	// todo: implement 
+	return std::make_unique<Stmt>();
+}
+
+std::unique_ptr<Stmt> Parser::if_statement()
+{
+	auto keyword = previous(); // get 'if'
+
+	consume(
+		TokenType::LeftParen,
+		ErrorCode::EXPECTED,
+		"Expected '(' after 'if'."
+	);
+
+	auto condition = expression();
+
+	consume(
+		TokenType::RightParen,
+		ErrorCode::EXPECTED,
+		"Expected ')' after if condition."
+	);
+
+	auto thenBranch = statement();
+	std::optional<std::unique_ptr<Stmt>> elseBranch = std::nullopt;
+
+	if (match(TokenType::Else)) {
+		elseBranch = statement();
+	}
+
+	return std::make_unique<IfStmt>(
+		std::move(keyword),
+		std::move(condition), 
+		std::move(thenBranch), 
+		std::move(elseBranch)
+	);
 }
 
 std::unique_ptr<Stmt> Parser::variable_declaration_statement()
@@ -184,7 +247,7 @@ std::unique_ptr<Expr> Parser::expression()
 
 std::unique_ptr<Expr> Parser::assignment()
 {
-	auto expr = equality();
+	auto expr = or_expression();
 
 	if (match(TokenType::Equal)) {
 		auto value = assignment();
@@ -197,6 +260,32 @@ std::unique_ptr<Expr> Parser::assignment()
 		}
 
 		throw ParserException(ErrorCode::INVALID_ASSIGNMENT, "Invalid assignment target.");
+	}
+
+	return expr;
+}
+
+std::unique_ptr<Expr> Parser::or_expression()
+{
+	auto expr = and_expression();
+
+	while (match(TokenType::Or)) {
+		auto op = previous();
+		auto right = and_expression();
+		expr = std::make_unique<LogicalExpr>(std::move(expr), std::move(op), std::move(right));
+	}
+
+	return expr;
+}
+
+std::unique_ptr<Expr> Parser::and_expression()
+{
+	auto expr = equality();
+
+	while (match(TokenType::And)) {
+		auto op = previous();
+		auto right = equality();
+		expr = std::make_unique<LogicalExpr>(std::move(expr), std::move(op), std::move(right));
 	}
 
 	return expr;
@@ -350,10 +439,16 @@ bool Parser::is_at_end() const noexcept {
 	return _tokens.at(_current).type == TokenType::Eof;
 }
 
+/// <summary>
+/// Retrieve current token at current position. 
+/// </summary>
 Token& Parser::peek() {
 	return _tokens.at(_current);
 }
 
+/// <summary>
+/// Retrieve a const current token at current position. 
+/// </summary>
 const Token& Parser::peek() const {
 	return _tokens.at(_current);
 }
@@ -374,6 +469,9 @@ Token Parser::advance() {
 	return previous();
 }
 
+/// <summary>
+/// Check if current token matches parameter. If true, calls advance() and returns true.
+/// </summary>
 bool Parser::match(TokenType type) {
 	if (!check(type))
 	{

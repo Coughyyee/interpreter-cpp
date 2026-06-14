@@ -42,6 +42,14 @@ export enum class TokenType {
 	Var,
 	True,
 	False,
+
+	And,
+	Or,
+	
+	Loop,
+	If,
+	Else,
+
 	// Keywords End
 
 	Semicolon,

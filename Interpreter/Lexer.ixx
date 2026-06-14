@@ -32,6 +32,11 @@ private:
         {"bool", TokenType::Bool},
         {"number", TokenType::Number},
         {"string", TokenType::String},
+        {"loop", TokenType::Loop},
+        {"if", TokenType::If},
+        {"else", TokenType::Else},
+        {"and", TokenType::And},
+        {"or", TokenType::Or},
 	};
 
 public:
