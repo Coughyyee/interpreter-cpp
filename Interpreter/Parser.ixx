@@ -115,19 +115,36 @@ std::unique_ptr<Stmt> Parser::statement()
 
 std::unique_ptr<Stmt> Parser::loop_statement()
 {
-	Token keyword = previous(); // 'loop'
+	Token keyword = previous(); 
+
+	std::optional<std::unique_ptr<Expr>> condition = std::nullopt; // default infinite loop
+
+	// If a left brace isnt present after keyword, expecting a ( condition ).
+	if (peek().type != TokenType::LeftBrace) {
+		consume(
+			TokenType::LeftParen,
+			ErrorCode::EXPECTED,
+			"Expected '(' after 'loop' if condition is to be presented."
+		);
+
+		condition = expression();
+
+		consume(
+			TokenType::RightParen,
+			ErrorCode::EXPECTED,
+			"Expected ')' after loop condition."
+		);
+	}
+
+	// capture block
+	auto block = statement();
 	
-	// start of block
-	if (peek().type == TokenType::LeftBrace) {
-
-	}
-	else {
-		// expecting a expression condition that returns a bool type
-		auto expression = equality();
-	}
-
 	// todo: implement 
-	return std::make_unique<Stmt>();
+	return std::make_unique<LoopStmt>(
+		std::move(keyword),
+		std::move(condition),
+		std::move(block)
+	);
 }
 
 std::unique_ptr<Stmt> Parser::if_statement()

@@ -183,12 +183,26 @@ void Interpreter::execute(const Stmt* stmt) {
 		else if (if_stmt->else_branch.has_value()) {
 			execute(if_stmt->else_branch.value().get());
 		}
+	
+		return;
+	}
+
+	if (auto loop_stmt = dynamic_cast<const LoopStmt*>(stmt)) {
+		if (loop_stmt->condition.has_value()) {
+			while (true) {
+				auto condition_result = evaluate(loop_stmt->condition.value().get());
+
+				if (!is_truthy(condition_result)) {
+					break;
+				}
+
+				execute(loop_stmt->block.get());
+			}
+		}
 		else {
-			throw RuntimeException(
-				ErrorCode::IS_NOT_TRUTHY,
-				"If condition expression doesn't evaluate to a boolean.",
-				if_stmt->keyword
-			);
+			while (true) {
+				execute(loop_stmt->block.get());
+			}
 		}
 
 		return;

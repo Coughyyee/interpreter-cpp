@@ -57,11 +57,13 @@ export struct BlockStmt : Stmt {
 };
 
 export struct LoopStmt : Stmt {
+	Token keyword;
 	// if true then condition else infinite loop
 	std::optional<std::unique_ptr<Expr>> condition;
+	std::unique_ptr<Stmt> block;
 
-	LoopStmt(std::optional<std::unique_ptr<Expr>> condition)
-		: condition(std::move(condition))
+	LoopStmt(Token keyword, std::optional<std::unique_ptr<Expr>> condition, std::unique_ptr<Stmt> block)
+		: keyword(std::move(keyword)), condition(std::move(condition)), block(std::move(block))
 	{
 	}
 };
