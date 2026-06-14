@@ -76,9 +76,9 @@ TEST(LexerTests, Keywords) {
 }
 
 TEST(LexerTests, VarDeclaration) {
-    token_match("var x -> int = 10;", {
+    token_match("var x -> number = 10;", {
         TokenType::Var, TokenType::Identifier,
-        TokenType::Arrow, TokenType::Identifier,
+        TokenType::Arrow, TokenType::Number,
         TokenType::Equal, TokenType::NumberLiteral,
         TokenType::Semicolon }
         );

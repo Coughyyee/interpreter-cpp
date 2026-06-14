@@ -18,7 +18,7 @@ statement → variableDeclaration
 
 variableDeclaration → 
         "var" IDENTIFIER 
-        "->" IDENTIFIER 
+        "->" ( "number" | "string" | "bool" ) // | IDENTIFIER in future for obj types ect 
         "=" expression ";" ;
 
 printStatement → "out" expression ";" ;
