@@ -98,7 +98,7 @@ std::unique_ptr<Stmt> Parser::statement()
 		return block_statement();
 	}
 
-	if (match(TokenType::Out)) {
+	if (match(TokenType::Out) || match(TokenType::Outln)) {
 		return print_statement();
 	}
 
@@ -195,6 +195,11 @@ std::unique_ptr<Stmt> Parser::variable_declaration_statement()
 std::unique_ptr<Stmt> Parser::print_statement() {
 	Token keyword = previous(); 
 
+	bool new_line = false;
+	if (keyword.type == TokenType::Outln) {
+		new_line = true;
+	}
+
 	auto value = expression();
 
 	consume(
@@ -203,7 +208,7 @@ std::unique_ptr<Stmt> Parser::print_statement() {
 		"Expected ';' after value."
 	);
 
-	return std::make_unique<PrintStmt>(keyword, std::move(value));
+	return std::make_unique<PrintStmt>(keyword, std::move(value), new_line);
 }
 
 std::unique_ptr<Stmt> Parser::expression_statement() {

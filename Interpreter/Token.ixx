@@ -39,6 +39,7 @@ export enum class TokenType {
 	String,
 
 	Out, // print 
+	Outln, // println
 	Var,
 	True,
 	False,

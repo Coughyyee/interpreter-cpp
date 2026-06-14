@@ -63,6 +63,9 @@ TEST(LexerTests, Keywords) {
     token_match("out;", {
 		TokenType::Out, TokenType::Semicolon }
     );
+    token_match("outln;", {
+		TokenType::Outln, TokenType::Semicolon }
+    );
 
 	// variable declaration
     token_match("var;", {
@@ -72,6 +75,16 @@ TEST(LexerTests, Keywords) {
 	// bools
     token_match("true; false;", {
 		TokenType::True, TokenType::Semicolon, TokenType::False, TokenType::Semicolon }
+    );
+	 
+	// logic
+    token_match("and; or;", {
+		TokenType::And, TokenType::Semicolon, TokenType::Or, TokenType::Semicolon }
+    );
+
+	// if else  
+    token_match("if else", {
+		TokenType::If, TokenType::Else }
     );
 }
 

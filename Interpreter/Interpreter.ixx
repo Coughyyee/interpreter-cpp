@@ -80,15 +80,22 @@ std::expected<void, Error> Interpreter::interpret(const Stmt* stmt)
 void Interpreter::execute(const Stmt* stmt) {
 	if (auto print_stmt = dynamic_cast<const PrintStmt*>(stmt)) {
 		Value value = evaluate(print_stmt->expression.get());
+		bool new_line = print_stmt->new_line;
 
 		if (std::holds_alternative<double>(value)) {
-			std::print("{}", std::get<double>(value));
+			new_line 
+				? std::println("{}", std::get<double>(value))
+				: std::print("{}", std::get<double>(value));
 		}
 		else if (std::holds_alternative<std::string>(value)) {
-			std::print("{}", std::get<std::string>(value));
+			new_line 
+				? std::println("{}", std::get<std::string>(value))
+				: std::print("{}", std::get<std::string>(value));
 		}
 		else if (std::holds_alternative<bool>(value)) {
-			std::print("{}", std::get<bool>(value) ? "true" : "false");
+			new_line 
+				? std::println("{}", std::get<bool>(value))
+				: std::print("{}", std::get<bool>(value));
 		}
 		else {
 			throw RuntimeException(

@@ -27,9 +27,10 @@ export struct ExpressionStmt : Stmt {
 export struct PrintStmt : Stmt {
 	Token keyword;
 	std::unique_ptr<Expr> expression;
+	bool new_line; // true -> appends new line char to output.
 
-	PrintStmt(Token keyword, std::unique_ptr<Expr> expression)
-		: keyword(std::move(keyword)), expression(std::move(expression))
+	PrintStmt(Token keyword, std::unique_ptr<Expr> expression, bool new_line)
+		: keyword(std::move(keyword)), expression(std::move(expression)), new_line(new_line)
 	{
 	}
 };

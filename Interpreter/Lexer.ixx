@@ -26,6 +26,7 @@ private:
 	// all keywords and their corresponding token types
     const std::unordered_map<std::string, TokenType> _keywords{
         {"out", TokenType::Out},
+        {"outln", TokenType::Outln},
         {"var", TokenType::Var},
         {"true", TokenType::True},
         {"false", TokenType::False},
