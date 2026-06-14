@@ -27,6 +27,7 @@ export namespace Logger {
 		std::string line_number_spaces(std::to_string(error.line).size(), ' ');
 
 		// TODO: implement StageCode display
+		std::println(stderr);
 		std::println(stderr, "[Error Code {}]: {}", static_cast<int>(error.code), error.message);
 		std::println(stderr, "Line: {} - Column: {}", error.line, error.column);
 		std::println(stderr);

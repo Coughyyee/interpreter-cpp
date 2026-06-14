@@ -34,6 +34,7 @@ public:
 	std::unique_ptr<Stmt> variable_declaration_statement();
 	std::unique_ptr<Stmt> print_statement();
 	std::unique_ptr<Stmt> expression_statement();
+	std::unique_ptr<Stmt> block_statement();
 	std::unique_ptr<Expr> expression();
 	std::unique_ptr<Expr> assignment();
 	std::unique_ptr<Expr> equality();
@@ -86,6 +87,10 @@ std::unique_ptr<Stmt> Parser::statement()
 {
 	if (match(TokenType::Var)) {
 		return variable_declaration_statement();
+	}
+
+	if (match(TokenType::LeftBrace)) {
+		return block_statement();
 	}
 
 	if (match(TokenType::Out)) {
@@ -150,6 +155,26 @@ std::unique_ptr<Stmt> Parser::expression_statement() {
 	);
 
 	return std::make_unique<ExpressionStmt>(start, std::move(expr));
+}
+
+std::unique_ptr<Stmt> Parser::block_statement()
+{
+	std::vector<std::unique_ptr<Stmt>> statements;
+
+	while (
+		!check(TokenType::RightBrace) &&
+		!is_at_end()
+		) {
+		statements.push_back(statement());
+	}
+
+	consume(
+		TokenType::RightBrace,
+		ErrorCode::EXPECTED,
+		"Expected '}' after block."
+	);
+
+	return std::make_unique<BlockStmt>(std::move(statements));
 }
 
 std::unique_ptr<Expr> Parser::expression()

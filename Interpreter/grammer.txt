@@ -12,9 +12,13 @@ EOF = end-of-file token.
 Grammer:
 program → statement* EOF ;
 
+
 statement → variableDeclaration
             | printStatement 
-            | expressionStatement ;
+            | expressionStatement 
+            | block ;
+
+block → "{" statement* "}" ;
 
 variableDeclaration → 
         "var" IDENTIFIER 

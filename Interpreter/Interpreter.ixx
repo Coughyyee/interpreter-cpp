@@ -20,10 +20,13 @@ export class Interpreter {
 private:
 	std::string _source;
 
-	std::unordered_map<std::string, Variable> _variables;
+	//std::unordered_map<std::string, Variable> _variables;
+	std::vector<std::unordered_map<std::string, Variable>> _scopes;
 
 public:
-	explicit Interpreter(std::string source) : _source(std::move(source)) {}
+	explicit Interpreter(std::string source) : _source(std::move(source)) {
+		_scopes.emplace_back();
+	}
 
 	std::expected<void, Error> interpret(const Stmt* stmt);
 
@@ -31,6 +34,10 @@ private:
 	void execute(const Stmt* stmt);
 	Value evaluate(const Expr* expr);
 
+	void begin_scope();
+	void end_scope();
+
+	Variable& lookup_variable(const std::string& name, Token token);
 	bool type_matches(const Value& value, TokenType declared_type) const noexcept;
 	bool is_truthy(const Value& value) const noexcept;
 	double as_number(const Value& value) const;
@@ -95,10 +102,12 @@ void Interpreter::execute(const Stmt* stmt) {
 	}
 
 	if (auto var = dynamic_cast<const VariableDeclarationStmt*>(stmt)) {
-		auto it = _variables.find(var->name.lexeme);
+		auto& current_scope = _scopes.back();
+
+		auto it = current_scope.find(var->name.lexeme);
 
 		// ensure variable isnt already been defined.
-		if (it != _variables.end()) {
+		if (it != current_scope.end()) {
 			throw RuntimeException(
 				ErrorCode::ALREADY_DEFINED_VARIABLE,
 				std::format(
@@ -124,7 +133,7 @@ void Interpreter::execute(const Stmt* stmt) {
 		}
 
 		// creates the variable
-		_variables[var->name.lexeme] =
+		current_scope[var->name.lexeme] =
 		{
 			.declared_type = var->declared_type.type,
 			.value = value,
@@ -137,6 +146,24 @@ void Interpreter::execute(const Stmt* stmt) {
 		evaluate(expression_stmt->expression.get());
 
 		// evaluates and does nothing
+		return;
+	}
+
+	if (auto block = dynamic_cast<const BlockStmt*>(stmt)) {
+		begin_scope();
+
+		try {
+			for (const auto& statement : block->statements) {
+				execute(statement.get());
+			} 
+		}
+		catch (...) {
+			end_scope();
+			throw;
+		}
+
+		end_scope();
+
 		return;
 	}
 
@@ -279,57 +306,63 @@ Value Interpreter::evaluate(const Expr* expr)
 	}
 
 	if (auto variable = dynamic_cast<const VariableExpr*>(expr)) {
-		// look for variable in map
-		auto it = _variables.find(variable->name.lexeme);
-
-		// doesnt exist
-		if (it == _variables.end()) {
-			throw RuntimeException(
-				ErrorCode::UNDEFINED_VARIABLE,
-				std::format("Undefined variable '{}'.", variable->name.lexeme),
-				variable->name
-			);
-		}
-		
-		// return stored value
-		return it->second.value;
+		return lookup_variable(
+			variable->name.lexeme,
+			variable->name
+		).value;
 	}
 
 	if (auto assignment = dynamic_cast<const AssignmentExpr*>(expr)) {
 		Value value = evaluate(assignment->value.get());
 
-		// variable exists
-		auto it = _variables.find(assignment->name.lexeme);
-		if (it == _variables.end()) {
-			throw RuntimeException(
-				ErrorCode::UNDEFINED_VARIABLE,
-				std::format(
-					"Undefined variable '{}'.",
-					assignment->name.lexeme
-				),
-				assignment->name
-			);
-		}
+		auto& variable = lookup_variable(
+			assignment->name.lexeme,
+			assignment->name
+		);
 
-		// ensure type matches
-		if (!type_matches(value, it->second.declared_type)) {
+		if (!type_matches(value, variable.declared_type)) {
 			throw RuntimeException(
 				ErrorCode::TYPE_MISMATCH,
 				std::format(
 					"Expression returned mismatched data type. Expected '{}' return type.",
-					it->second.get_type_name()
+					variable.get_type_name()
 				),
 				assignment->name
 			);
 		}
 
-		it->second.value = value;
+		variable.value = value;
 
 		return value;
 	}
 
 	// Todo: come back to
 	throw std::runtime_error{ "Unknown expression type." };
+}
+
+void Interpreter::begin_scope()
+{
+	_scopes.emplace_back();
+}
+
+void Interpreter::end_scope()
+{
+	_scopes.pop_back();
+}
+
+Variable& Interpreter::lookup_variable(const std::string& name, Token token)
+{
+	for (auto it = _scopes.rbegin(); it != _scopes.rend(); ++it) {
+		if (auto var = it->find(name); var != it->end()) {
+			return var->second;
+		}
+	}
+
+	throw RuntimeException(
+		ErrorCode::UNDEFINED_VARIABLE,
+		std::format("Undefined variable '{}'.", name),
+		token	
+	);
 }
 
 bool Interpreter::type_matches(const Value& value, TokenType declared_type) const noexcept

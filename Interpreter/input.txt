@@ -1,3 +1,14 @@
 var x -> number = 10;
-var y -> bool = true;
-out 10 / 0;
+
+{ 
+	out x;
+	{
+		var y -> number = 4;
+		out y;
+	}
+}
+
+out x;
+out y;
+
+

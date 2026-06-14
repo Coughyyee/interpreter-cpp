@@ -1,5 +1,6 @@
 module;
 #include <memory>
+#include <vector>
 
 export module Stmt;
 
@@ -40,6 +41,15 @@ export struct VariableDeclarationStmt : Stmt {
 
 	VariableDeclarationStmt(Token keyword, Token name, Token declared_type, std::unique_ptr<Expr> expression)
 		: keyword(std::move(keyword)), name(std::move(name)), declared_type(std::move(declared_type)), expression(std::move(expression))
+	{
+	}
+};
+
+export struct BlockStmt : Stmt {
+	std::vector<std::unique_ptr<Stmt>> statements;
+
+	BlockStmt(std::vector<std::unique_ptr<Stmt>> statements)
+		: statements(std::move(statements))
 	{
 	}
 };
