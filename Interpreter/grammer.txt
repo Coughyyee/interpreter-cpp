@@ -15,6 +15,7 @@ program -> statement* EOF ;
 
 statement -> variableDeclaration
             | ifStatement
+            | loopStatement
             | printStatement 
             | expressionStatement 
             | blockStatement ;
@@ -29,7 +30,11 @@ variableDeclaration ->
 ifStatement -> "if" "(" expression ")" statement
             ( "else" statement )? ;
 
-printStatement -> "out" expression ";" ;
+loopStatement -> "loop"
+            ( "(" expression ")" )? 
+            statement ;
+
+printStatement -> ( "out" | "outln" ) expression ";" ;
 
 expressionStatement -> expression ";" ;
 

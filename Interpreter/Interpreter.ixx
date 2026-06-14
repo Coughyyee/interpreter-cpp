@@ -177,9 +177,11 @@ void Interpreter::execute(const Stmt* stmt) {
 	if (auto if_stmt = dynamic_cast<const IfStmt*>(stmt)) {
 		auto condition_result = evaluate(if_stmt->condition.get());
 
+		// if branch
 		if (is_truthy(condition_result)) {
 			execute(if_stmt->then_branch.get());
 		}
+		// else branch
 		else if (if_stmt->else_branch.has_value()) {
 			execute(if_stmt->else_branch.value().get());
 		}
@@ -192,6 +194,7 @@ void Interpreter::execute(const Stmt* stmt) {
 			while (true) {
 				auto condition_result = evaluate(loop_stmt->condition.value().get());
 
+				// re-evaluate condition - break when condition is false
 				if (!is_truthy(condition_result)) {
 					break;
 				}
@@ -200,6 +203,7 @@ void Interpreter::execute(const Stmt* stmt) {
 			}
 		}
 		else {
+			// infinite loop
 			while (true) {
 				execute(loop_stmt->block.get());
 			}

@@ -1,5 +1,5 @@
 var x -> number = 0;
-
+// conditional loop
 loop (x < 10) {
 	outln x;
 	x = x + 1;
