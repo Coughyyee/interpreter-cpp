@@ -22,52 +22,52 @@ Statements and expressions must end in a semicolon. For example `out 10;` must e
 #### Equality and Comparison
 
 All of the following operators are implemented inside of the language.
-`==` - Equal to.
-`!=` - Not equal to.
-`>` - More than.
-`<=` - More than or equal to.
-`>` - Less than.
-`>=` - Less than or equal to.
+* `==` - Equal to.
+* `!=` - Not equal to.
+* `>` - More than.
+* `<=` - More than or equal to.
+* `>` - Less than.
+* `>=` - Less than or equal to.
 
 #### Arithmatic
 
-`+` - Plus.
-`-` - Minus.
-`*` - Multiply.
-`/` - Divide.
+* `+` - Plus.
+* `-` - Minus.
+* `*` - Multiply.
+* `/` - Divide.
 
 #### Unary
-`!` - Not (flips boolean).
-`-` - Negates value.
+* `!` - Not (flips boolean).
+* `-` - Negates value.
 
 ### Keywords
 
 #### Printing
 
-`out` - Print, no new line.
-`outln` - Print with new line appended at the end.
+* `out` - Print, no new line.
+* `outln` - Print with new line appended at the end.
 
 #### Types
 
-`bool` - Boolean values.
-`string` - String values.
-`number` - Number values (integer and floating point).
+* `bool` - Boolean values.
+* `string` - String values.
+* `number` - Number values (integer and floating point).
 
 #### Logic
 
-`or` - Logic or.
-`and` - Logic and.
+* `or` - Logic or.
+* `and` - Logic and.
 
 #### Variable Declaration
 
-`var` - Declare Variable in format: `var <identifier> -> <type> = <value>` (anything inside of <...> is a placeholder).
+* `var` - Declare Variable in format: `var <identifier> -> <type> = <value>` (anything inside of <...> is a placeholder).
 
 #### Looping 
 
-`loop` - Defines an infinite loop or a while like loop. `loop {...` will define an infinite loop. `loop (<expression>) {...` defines a while like loop.
+* `loop` - Defines an infinite loop or a while like loop. `loop {...` will define an infinite loop. `loop (<expression>) {...` defines a while like loop.
 
 #### Conditional
 
-`if` - Defines a if statement. Format: `if (<expression>) {...`.
-`else` - Defines an else block to an if, if the condition is falsey. Format: `if (...) {...} else {...`.
+* `if` - Defines a if statement. Format: `if (<expression>) {...`.
+* `else` - Defines an else block to an if, if the condition is falsey. Format: `if (...) {...} else {...`.
 
