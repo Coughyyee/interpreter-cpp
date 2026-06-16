@@ -359,6 +359,17 @@ Value Interpreter::evaluate(const Expr* expr)
 		}
 	}
 
+	if (auto type_of = dynamic_cast<const TypeOfExpr*>(expr)) {
+		Value value = evaluate(type_of->expr.get());
+
+		if (std::holds_alternative<double>(value))
+			return std::string("number");
+		if (std::holds_alternative<bool>(value))
+			return std::string("bool");
+		if (std::holds_alternative<std::string>(value))
+			return std::string("string");
+	}
+
 	if (auto grouping = dynamic_cast<const GroupingExpr*>(expr)) {
 		return evaluate(grouping->expr.get());
 	}

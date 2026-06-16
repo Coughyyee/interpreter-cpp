@@ -10,16 +10,19 @@ import Parser;
 import AstPrinter;
 import Interpreter;
 
-static std::expected<std::string, std::string> read_file(const char* path) {
-	std::ifstream file(path);
-	if (!file) {
-		return std::unexpected("Unable to open file.");
+namespace 
+{
+	std::expected<std::string, std::string> read_file(const char* path) {
+		std::ifstream file(path);
+		if (!file) {
+			return std::unexpected("Unable to open file.");
+		}
+
+		std::stringstream buffer;
+		buffer << file.rdbuf();
+
+		return buffer.str();
 	}
-
-	std::stringstream buffer;
-	buffer << file.rdbuf();
-
-	return buffer.str();
 }
 
 int main(int argc, char* argv[]) {

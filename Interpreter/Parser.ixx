@@ -420,6 +420,10 @@ std::unique_ptr<Expr> Parser::unary()
 		);
 	}
 
+	if (match(TokenType::Typeof)) {
+		return std::make_unique<TypeOfExpr>(unary());
+	}
+
 	return primary();
 }
 

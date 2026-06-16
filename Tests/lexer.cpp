@@ -86,6 +86,16 @@ TEST(LexerTests, Keywords) {
     token_match("if else", {
 		TokenType::If, TokenType::Else }
     );
+
+	// looping
+    token_match("loop", {
+		TokenType::Loop }
+    );
+
+	// typeof
+    token_match("typeof", {
+		TokenType::Typeof }
+    );
 }
 
 TEST(LexerTests, VarDeclaration) {

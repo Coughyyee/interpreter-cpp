@@ -38,6 +38,7 @@ private:
         {"else", TokenType::Else},
         {"and", TokenType::And},
         {"or", TokenType::Or},
+        {"typeof", TokenType::Typeof},
 	};
 
 public:

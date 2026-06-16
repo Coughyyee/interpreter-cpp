@@ -2,4 +2,6 @@
 
 * Store all errors in vector then output all errors at the end?
 * Test files for error cases
+* Typeof keyword
+* Cast / Castto keyword
 

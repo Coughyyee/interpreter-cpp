@@ -80,4 +80,13 @@ export struct AssignmentExpr : Expr {
 	}
 };
 
+export struct TypeOfExpr : Expr {
+	std::unique_ptr<Expr> expr;
+
+	TypeOfExpr(std::unique_ptr<Expr> expr)
+		: expr(std::move(expr))
+	{
+	}
+};
+
 // Later: Function, class, enum etc.

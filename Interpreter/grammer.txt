@@ -59,6 +59,7 @@ factor -> unary
          ( ("*" | "/") unary )* ;
 
 unary -> ("!" | "-") unary
+      | "typeof" unary
       | primary ;
 
 primary -> NUMBER

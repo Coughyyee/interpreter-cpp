@@ -51,6 +51,8 @@ export enum class TokenType {
 	If,
 	Else,
 
+	Typeof,
+
 	// Keywords End
 
 	Semicolon,

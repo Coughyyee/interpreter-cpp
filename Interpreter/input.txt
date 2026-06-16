@@ -1,6 +1,4 @@
-var x -> number = 0;
-// conditional loop
-loop (x < 10) {
-	outln x;
-	x = x + 1;
-}
+// This file's path is added as a cli argument therefore code within here executes.
+
+var x -> number = 10;
+outln typeof x;
