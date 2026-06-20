@@ -1,12 +1,23 @@
 module;
 #include <variant>
 #include <string>
+#include <vector>
+#include <memory>
 export module Value;
 
 import Token;
 
-// C++ types used within the interpreter.
-export using Value = std::variant<double, bool, std::string>;
+export struct ArrayValue;
+export using Value = std::variant<double, bool, std::string, std::shared_ptr<ArrayValue>>;
+export struct ArrayValue {
+	std::vector<Value> elements;
+};
+
+export template<typename T>
+concept ArrayElementType =
+	std::same_as<T, double> ||
+	std::same_as<T, bool> ||
+	std::same_as<T, std::string>;
 
 export struct Variable {
 	TokenType declared_type;
@@ -20,6 +31,12 @@ export struct Variable {
 			return "bool";
 		case TokenType::String:
 			return "string";
+		case TokenType::NumberArray:
+			return "number[]";
+		case TokenType::BoolArray:
+			return "bool[]";
+		case TokenType::StringArray:
+			return "string[]";
 		default:
 			return "invalid";
 		}

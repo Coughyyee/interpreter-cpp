@@ -157,8 +157,19 @@ std::expected<std::vector<Token>, Error> Lexer::scan_tokens()
             tokens.emplace_back(Token{TokenType::RightBrace, "}", line, column});
             break;
 
+        case '[':
+            tokens.emplace_back(Token{TokenType::LeftBracket, "[", line, column});
+            break;
+
+        case ']':
+            tokens.emplace_back(Token{TokenType::RightBracket, "]", line, column});
+            break;
+
         case ';':
             tokens.emplace_back(Token{TokenType::Semicolon, ";", line, column });
+            break;
+        case ',':
+            tokens.emplace_back(Token{TokenType::Comma, ",", line, column });
             break;
 
 		case '"': {

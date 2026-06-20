@@ -1,5 +1,6 @@
 module;
 #include <memory>
+#include <vector>
 
 export module Expr;
 
@@ -89,4 +90,23 @@ export struct TypeOfExpr : Expr {
 	}
 };
 
-// Later: Function, class, enum etc.
+export struct ArrayExpr : Expr {
+	std::vector<std::unique_ptr<Expr>> elements;
+
+	ArrayExpr(std::vector<std::unique_ptr<Expr>> elements)
+		: elements(std::move(elements))
+	{
+	}
+};
+
+export struct IndexExpr : Expr {
+	Token token;
+	std::unique_ptr<Expr> target;
+	std::unique_ptr<Expr> index;
+
+	IndexExpr(Token token, std::unique_ptr<Expr> target, std::unique_ptr<Expr> index)
+		: token(std::move(token)), target(std::move(target)), index(std::move(index))
+	{
+	}
+};
+

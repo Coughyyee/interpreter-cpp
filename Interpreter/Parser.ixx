@@ -47,6 +47,8 @@ public:
 	std::unique_ptr<Expr> term();
 	std::unique_ptr<Expr> factor();
 	std::unique_ptr<Expr> unary();
+	std::unique_ptr<Expr> index();
+	std::unique_ptr<Expr> array();
 	std::unique_ptr<Expr> primary();
 
 private:
@@ -200,11 +202,40 @@ std::unique_ptr<Stmt> Parser::variable_declaration_statement()
 		"Expected valid type name."
 	);
 
+	bool is_array = false;
+	if (peek().type == TokenType::LeftBracket) {
+		advance(); // consume left bracket
+		consume( // consume right bracket
+			TokenType::RightBracket,
+			ErrorCode::EXPECTED,
+			"Expected ']' after '[' in type definition."
+		);
+		is_array = true;
+	}
+
 	consume(TokenType::Equal, ErrorCode::EXPECTED, "Expected '=' after type.");
 
 	auto expr = expression();
 
 	consume(TokenType::Semicolon, ErrorCode::EXPECTED, "Expected ';' after expression.");
+
+	if (is_array)
+	{
+		switch (declared_type.type)
+		{
+		case TokenType::Number:
+			declared_type.type = TokenType::NumberArray;
+			break;
+
+		case TokenType::String:
+			declared_type.type = TokenType::StringArray;
+			break;
+
+		case TokenType::Bool:
+			declared_type.type = TokenType::BoolArray;
+			break;
+		}
+	}
 
 	return std::make_unique<VariableDeclarationStmt>(keyword, name, declared_type, std::move(expr));
 }
@@ -424,7 +455,47 @@ std::unique_ptr<Expr> Parser::unary()
 		return std::make_unique<TypeOfExpr>(unary());
 	}
 
-	return primary();
+	return index();
+}
+
+std::unique_ptr<Expr> Parser::index()
+{
+	auto expr = primary();
+
+	while (match(TokenType::LeftBracket)) {
+		auto index_expr = expression();
+
+		consume(TokenType::RightBracket, ErrorCode::EXPECTED, "Expected ']' after index expression.");
+
+		expr = std::make_unique<IndexExpr>(
+			std::move(previous()), // token for index
+			std::move(expr),
+			std::move(index_expr)
+		);
+	}
+
+	return expr;
+}
+
+std::unique_ptr<Expr> Parser::array()
+{
+	std::vector<std::unique_ptr<Expr>> elements;
+
+	if (!check(TokenType::RightBracket)) {
+		do {
+			elements.push_back(expression());
+		} while (match(TokenType::Comma));
+	}
+
+	consume(
+		TokenType::RightBracket,
+		ErrorCode::EXPECTED,
+		"Expected ']' after array."
+	);
+
+	return std::make_unique<ArrayExpr>(
+		std::move(elements)
+	);
 }
 
 std::unique_ptr<Expr> Parser::primary()
@@ -455,6 +526,10 @@ std::unique_ptr<Expr> Parser::primary()
 		return std::make_unique<GroupingExpr>(
 			std::move(expr)
 		);
+	}
+
+	if (match(TokenType::LeftBracket)) {
+		return array();
 	}
 
 	// Throw?

@@ -131,6 +131,7 @@
     <Text Include="input.txt" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\README.md" />
     <None Include="packages.config" />
     <None Include="todo.md" />
   </ItemGroup>

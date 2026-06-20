@@ -26,6 +26,7 @@ export enum ErrorCode {
 	INVALID_OPERANDS,
 	DIVISION_BY_0,
 	IS_NOT_TRUTHY,
+	INDEX_OUT_OF_BOUNDS,
 };
 
 export struct Error {

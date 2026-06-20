@@ -39,6 +39,7 @@ private:
 
 	Variable& lookup_variable(const std::string& name, Token token);
 	bool type_matches(const Value& value, TokenType declared_type) const noexcept;
+	template <ArrayElementType T> bool type_matches_array(const Value& value) const;
 	bool is_truthy(const Value& value) const noexcept;
 	double as_number(const Value& value) const;
 	std::string as_string(const Value& value) const;
@@ -97,6 +98,37 @@ void Interpreter::execute(const Stmt* stmt) {
 				? std::println("{}", std::get<bool>(value))
 				: std::print("{}", std::get<bool>(value));
 		}
+		// Array printing
+		else if (std::holds_alternative<std::shared_ptr<ArrayValue>>(value)) {
+			auto array = std::get<std::shared_ptr<ArrayValue>>(value);
+			std::print("[");
+
+			for (size_t i = 0; i < array->elements.size(); ++i) {
+				const auto& element = array->elements[i];
+
+				if (std::holds_alternative<double>(element)) {
+					std::print("{}", std::get<double>(element));
+				}
+				else if (std::holds_alternative<std::string>(element)) {
+					std::print("{}", std::get<std::string>(element));
+				}
+				else if (std::holds_alternative<bool>(element)) {
+					std::print("{}", std::get<bool>(element));
+				}
+
+				if (i + 1 < array->elements.size()) {
+					std::print(", ");
+				}
+			}
+
+			std::print("]");
+
+			// if outln used
+			if (new_line) {
+				std::print("\n");
+			}
+		}
+		// Error
 		else {
 			throw RuntimeException(
 				ErrorCode::UNKNOWN,
@@ -405,6 +437,55 @@ Value Interpreter::evaluate(const Expr* expr)
 		return value;
 	}
 
+	if (auto array = dynamic_cast<const ArrayExpr*>(expr)) {
+		auto result = std::make_shared<ArrayValue>();
+
+		for (const auto& element : array->elements) {
+			result->elements.push_back(
+				evaluate(element.get())
+			);
+		}
+
+		return result;
+	}
+
+	if (auto index = dynamic_cast<const IndexExpr*>(expr)) {
+		Value target = evaluate(index->target.get());
+		if (!std::holds_alternative<std::shared_ptr<ArrayValue>>(target)) {
+			throw RuntimeException(
+				ErrorCode::INVALID_OPERAND,
+				"Invalid operand for index. Target must be an array.",
+				index->token
+			);
+		}
+
+		Value index_value = evaluate(index->index.get());
+		if (!std::holds_alternative<double>(index_value)) {
+			throw RuntimeException(
+				ErrorCode::INVALID_OPERAND,
+				"Invalid operand for index. Index must be a number.",
+				index->token
+			);
+		}
+
+		int index_value_int = static_cast<int>(std::get<double>(index_value)); // cast type to int for array indexing
+
+		auto array = std::get<std::shared_ptr<ArrayValue>>(target);
+		if (index_value_int < 0 || index_value_int >= array->elements.size()) {
+			throw RuntimeException(
+				ErrorCode::INDEX_OUT_OF_BOUNDS,
+				std::format(
+					"Index out of bounds. Index {} is not valid for array of size {}.",
+					index_value_int,
+					array->elements.size()
+				),
+				index->token
+			);
+		}
+
+		return array->elements[index_value_int];
+	}
+
 	// Todo: come back to
 	throw std::runtime_error{ "Unknown expression type." };
 }
@@ -436,20 +517,42 @@ Variable& Interpreter::lookup_variable(const std::string& name, Token token)
 
 bool Interpreter::type_matches(const Value& value, TokenType declared_type) const noexcept
 {
-	 switch (declared_type)
-		{
-		case TokenType::Number:
-			return std::holds_alternative<double>(value);
+	switch (declared_type)
+	{
+	case TokenType::Number:
+		return std::holds_alternative<double>(value);
+	case TokenType::String:
+		return std::holds_alternative<std::string>(value);
+	case TokenType::Bool:
+		return std::holds_alternative<bool>(value);
 
-		case TokenType::String:
-			return std::holds_alternative<std::string>(value);
+	case TokenType::NumberArray: 
+		return type_matches_array<double>(value);
+	case TokenType::StringArray: 
+		return type_matches_array<std::string>(value);
+	case TokenType::BoolArray: 
+		return type_matches_array<bool>(value);
 
-		case TokenType::Bool:
-			return std::holds_alternative<bool>(value);
+	default:
+		return false;
+	}
+}
 
-		default:
+template <ArrayElementType T>
+bool Interpreter::type_matches_array(const Value& value) const
+{
+	if (!std::holds_alternative<std::shared_ptr<ArrayValue>>(value)) {
+		return false;
+	}
+
+	auto array = std::get<std::shared_ptr<ArrayValue>>(value);
+	for (const auto& element : array->elements) {
+		if (!std::holds_alternative<T>(element)) {
 			return false;
 		}
+	}
+
+	return true;
 }
 
 bool Interpreter::is_truthy(const Value& value) const noexcept

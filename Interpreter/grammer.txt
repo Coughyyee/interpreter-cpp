@@ -38,6 +38,8 @@ printStatement -> ( "out" | "outln" ) expression ";" ;
 
 expressionStatement -> expression ";" ;
 
+array -> "[" expression ( "," expression )* "]" | "[" "]" ;
+
 expression -> assignment ;
 
 assignment -> IDENTIFIER "=" assignment | equality ;
@@ -62,9 +64,16 @@ unary -> ("!" | "-") unary
       | "typeof" unary
       | primary ;
 
+type ->   "number"
+        | "string"
+        | "bool" ;
+
+arrayType -> type "[]" ;
+
 primary -> NUMBER
         | STRING
         | TRUE
         | FALSE
         | IDENTIFIER
-        | "(" expression ")" ;
+        | "(" expression ")"
+        | primary "[" expression "]" ;

@@ -8,6 +8,11 @@ export enum class TokenType {
 	StringLiteral,
 	Identifier,
 
+	// arrays
+	NumberArray,
+	StringArray,
+	BoolArray,
+
 	Equal,
 
 	Bang,
@@ -27,6 +32,8 @@ export enum class TokenType {
 	RightParen,
 	LeftBrace,
 	RightBrace,
+	LeftBracket,
+	RightBracket,
 
 	// customer operators
 	Arrow,
@@ -56,6 +63,7 @@ export enum class TokenType {
 	// Keywords End
 
 	Semicolon,
+	Comma,
 
 	Eof
 };
