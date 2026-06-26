@@ -110,3 +110,14 @@ export struct IndexExpr : Expr {
 	}
 };
 
+export struct CallExpr : Expr {
+	std::unique_ptr<Expr> callee;
+	Token paren;
+	std::vector<std::unique_ptr<Expr>> arguments;
+
+	CallExpr(std::unique_ptr<Expr> callee, Token paren, std::vector<std::unique_ptr<Expr>> arguments)
+		: callee(std::move(callee)), paren(std::move(paren)), arguments(std::move(arguments))
+	{
+	}
+};
+

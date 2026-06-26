@@ -4,10 +4,10 @@ module;
 export module SourceUtils;
 
 /// <summary>
-///	Return the whole line from source code based on line index. Utilised in error handling + debugging. 
+///	Return the whole line from source code based on line postfix. Utilised in error handling + debugging. 
 /// </summary>
 /// <param name="source">Source code file</param>
-/// <param name="line">Line index</param>
+/// <param name="line">Line postfix</param>
 /// <returns>Whole line from offset</returns>
 export std::string get_line_from_source(const std::string& source, size_t line) {
 	size_t current_line = 1;

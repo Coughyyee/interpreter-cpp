@@ -1,9 +1,16 @@
 // This file's path is added as a cli argument therefore code within here executes.
 
-var x -> number[] = [1,2,3,4];
-var t -> number = 1;
+// Current errors:
+// logging arrow and position is off with error printing
 
-outln x[0];
-outln x[3];
-outln x[t];
+func foo() -> void {
+	out "Hello World!";
+}
+
+func add(x -> number, x -> number) -> void {
+	out x + y;
+}
+
+foo();
+add(1, 2);
 

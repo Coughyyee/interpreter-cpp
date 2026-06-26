@@ -79,3 +79,33 @@ export struct IfStmt : Stmt {
 	{
 	}
 };
+
+export struct Parameter {
+	Token name;
+	Token type;
+};
+
+export struct FunctionDeclarationStmt : Stmt {
+	Token keyword;
+	Token name;
+	std::vector<Parameter> parameters;
+	Token return_type;
+	std::unique_ptr<Stmt> block;
+	FunctionDeclarationStmt(Token keyword, Token name, std::vector<Parameter> parameters, Token return_type, std::unique_ptr<Stmt> block)
+		: keyword(std::move(keyword)),
+			name(std::move(name)),
+			parameters(std::move(parameters)), 
+			return_type(std::move(return_type)), 
+			block(std::move(block))	
+	{
+	}
+};
+
+export struct ReturnStmt : Stmt {
+	Token keyword;
+	std::unique_ptr<Expr> value;
+	ReturnStmt(Token keyword, std::unique_ptr<Expr> value)
+		: keyword(std::move(keyword)), value(std::move(value))
+	{
+	}
+};

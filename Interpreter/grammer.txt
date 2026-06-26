@@ -1,79 +1,149 @@
-﻿How To Read Grammer:
-"<value>" = character(s) expected.
--> = something consists of this.
-() = grouping.
-| = Or.
-* = 0 or more times.
-? = 0 or 1 time.
-; = end.
-IDENTIFIER = variable name token.
-EOF = end-of-file token.
+﻿How To Read Grammar:
+"<value>"      = Character(s) expected.
+->             = Consists of.
+()             = Grouping.
+|              = Or.
+*              = Zero or more times.
+?              = Zero or one time.
+;              = End.
+IDENTIFIER     = Variable/function name token.
+EOF            = End-of-file token.
 
-Grammer:
-program -> statement* EOF ;
+Grammar:
 
+program
+    -> declaration* EOF ;
 
-statement -> variableDeclaration
-            | ifStatement
-            | loopStatement
-            | printStatement 
-            | expressionStatement 
-            | blockStatement ;
+declaration
+    -> functionDeclaration
+    | variableDeclaration
+    | statement ;
 
-blockStatement -> "{" statement* "}" ;
+statement
+    -> blockStatement
+    | ifStatement
+    | loopStatement
+    | returnStatement
+    | printStatement
+    | expressionStatement ;
 
-variableDeclaration -> 
-        "var" IDENTIFIER 
-        "->" ( "number" | "string" | "bool" ) // | IDENTIFIER in future for obj types ect 
-        "=" expression ";" ;
+blockStatement
+    -> "{" declaration* "}" ;
 
-ifStatement -> "if" "(" expression ")" statement
-            ( "else" statement )? ;
+functionDeclaration
+    -> "func"
+       IDENTIFIER
+       "(" parameters? ")"
+       ( "->" type )?
+       blockStatement ;
 
-loopStatement -> "loop"
-            ( "(" expression ")" )? 
-            statement ;
+parameters
+    -> parameter ( "," parameter )* ;
 
-printStatement -> ( "out" | "outln" ) expression ";" ;
+parameter
+    -> IDENTIFIER
+       "->"
+       type ;
 
-expressionStatement -> expression ";" ;
+variableDeclaration
+    -> "var"
+       IDENTIFIER
+       "->"
+       type
+       "="
+       expression
+       ";" ;
 
-array -> "[" expression ( "," expression )* "]" | "[" "]" ;
+type
+    -> primitiveType
+    | arrayType ;
 
-expression -> assignment ;
+primitiveType
+    -> "number"
+    | "string"
+    | "bool" ;
 
-assignment -> IDENTIFIER "=" assignment | equality ;
+arrayType
+    -> primitiveType "[]" ;
 
-logicOr -> logic_and ( "or" logic_and )* ;
+ifStatement
+    -> "if"
+       "(" expression ")"
+       statement
+       ( "else" statement )? ;
 
-logicAnd -> equality ( "and" equality )* ;
+loopStatement
+    -> "loop"
+       ( "(" expression ")" )?
+       statement ;
 
-equality -> comparison
-        ( ("==" | "!=") comparison )* ;
+returnStatement
+    -> "return"
+       expression?
+       ";" ;
 
-comparison -> term
-        ( (">" | ">=" | "<" | "<=") term )* ;
+printStatement
+    -> ( "out" | "outln" )
+       expression
+       ";" ;
 
-term -> factor
-       ( ("+" | "-") factor )* ;
+expressionStatement
+    -> expression ";" ;
 
-factor -> unary
-         ( ("*" | "/") unary )* ;
+expression
+    -> assignment ;
 
-unary -> ("!" | "-") unary
-      | "typeof" unary
-      | primary ;
+assignment
+    -> postfix "=" assignment
+    | logicOr ;
 
-type ->   "number"
-        | "string"
-        | "bool" ;
+logicOr
+    -> logicAnd
+       ( "or" logicAnd )* ;
 
-arrayType -> type "[]" ;
+logicAnd
+    -> equality
+       ( "and" equality )* ;
 
-primary -> NUMBER
-        | STRING
-        | TRUE
-        | FALSE
-        | IDENTIFIER
-        | "(" expression ")"
-        | primary "[" expression "]" ;
+equality
+    -> comparison
+       ( ( "==" | "!=" ) comparison )* ;
+
+comparison
+    -> term
+       ( ( ">" | ">=" | "<" | "<=" ) term )* ;
+
+term
+    -> factor
+       ( ( "+" | "-" ) factor )* ;
+
+factor
+    -> unary
+       ( ( "*" | "/" ) unary )* ;
+
+unary
+    -> ( "!" | "-" | "typeof" ) unary
+    | postfix ;
+
+postfix
+    -> primary
+       ( "[" expression "]"
+       | "(" arguments? ")" )* ;
+
+arguments
+    -> expression
+       ( "," expression )* ;
+
+primary
+    -> NUMBER
+    | STRING
+    | TRUE
+    | FALSE
+    | IDENTIFIER
+    | array
+    | "(" expression ")" ;
+
+array
+    -> "["
+       ( expression ( "," expression )* )?
+       "]" ;

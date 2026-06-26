@@ -6,11 +6,23 @@ module;
 export module Value;
 
 import Token;
+import Stmt;
 
 export struct ArrayValue;
 export using Value = std::variant<double, bool, std::string, std::shared_ptr<ArrayValue>>;
 export struct ArrayValue {
 	std::vector<Value> elements;
+};
+
+export struct FunctionValue {
+	std::vector<Parameter> parameters;
+	Token return_type;
+	std::unique_ptr<Stmt> body;
+
+	FunctionValue(std::vector<Parameter> params, Token ret_type, std::unique_ptr<Stmt> b)
+		: parameters(std::move(params)), return_type(std::move(ret_type)), body(std::move(b))
+	{
+	}
 };
 
 export template<typename T>
@@ -37,6 +49,8 @@ export struct Variable {
 			return "bool[]";
 		case TokenType::StringArray:
 			return "string[]";
+		case TokenType::Void:
+			return "void";
 		default:
 			return "invalid";
 		}

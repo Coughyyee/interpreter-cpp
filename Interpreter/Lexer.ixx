@@ -27,17 +27,26 @@ private:
     const std::unordered_map<std::string, TokenType> _keywords{
         {"out", TokenType::Out},
         {"outln", TokenType::Outln},
+
         {"var", TokenType::Var},
+
         {"true", TokenType::True},
         {"false", TokenType::False},
+
         {"bool", TokenType::Bool},
         {"number", TokenType::Number},
         {"string", TokenType::String},
+        {"void", TokenType::Void},
+
         {"loop", TokenType::Loop},
         {"if", TokenType::If},
         {"else", TokenType::Else},
         {"and", TokenType::And},
         {"or", TokenType::Or},
+
+        {"func", TokenType::Func},
+        {"return", TokenType::Return},
+
         {"typeof", TokenType::Typeof},
 	};
 

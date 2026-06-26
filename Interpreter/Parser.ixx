@@ -34,6 +34,8 @@ public:
 	std::unique_ptr<Stmt> statement();
 	std::unique_ptr<Stmt> loop_statement();
 	std::unique_ptr<Stmt> if_statement();
+	std::unique_ptr<Stmt> return_statement();
+	std::unique_ptr<Stmt> function_declaration_statement();
 	std::unique_ptr<Stmt> variable_declaration_statement();
 	std::unique_ptr<Stmt> print_statement();
 	std::unique_ptr<Stmt> expression_statement();
@@ -47,7 +49,7 @@ public:
 	std::unique_ptr<Expr> term();
 	std::unique_ptr<Expr> factor();
 	std::unique_ptr<Expr> unary();
-	std::unique_ptr<Expr> index();
+	std::unique_ptr<Expr> postfix();
 	std::unique_ptr<Expr> array();
 	std::unique_ptr<Expr> primary();
 
@@ -110,6 +112,14 @@ std::unique_ptr<Stmt> Parser::statement()
 
 	if (match(TokenType::If)) {
 		return if_statement();
+	}
+	
+	if (match(TokenType::Func)) {
+		return function_declaration_statement();
+	}
+
+	if (match(TokenType::Return)) {
+		return return_statement();
 	}
 
 	return expression_statement();
@@ -179,6 +189,93 @@ std::unique_ptr<Stmt> Parser::if_statement()
 		std::move(condition), 
 		std::move(thenBranch), 
 		std::move(elseBranch)
+	);
+}
+
+std::unique_ptr<Stmt> Parser::return_statement()
+{
+	Token keyword = previous(); 
+
+	auto value = expression();
+
+	consume(
+		TokenType::Semicolon,
+		ErrorCode::EXPECTED,
+		"Expected ';' after value."
+	);
+
+	return std::make_unique<ReturnStmt>(keyword, std::move(value));
+}
+
+std::unique_ptr<Stmt> Parser::function_declaration_statement()
+{
+	Token keyword = previous();
+	Token name = consume(TokenType::Identifier, ErrorCode::EXPECTED, "Expected function name.");
+
+	consume(TokenType::LeftParen, ErrorCode::EXPECTED, "Expected '(' after function name.");
+
+	std::vector<Parameter> parameters{};
+
+	// parameter list
+	while (!check(TokenType::RightParen) && !is_at_end()) {
+		auto param_name = consume(TokenType::Identifier, ErrorCode::EXPECTED, "Expected parameter name.");
+		consume(TokenType::Arrow, ErrorCode::EXPECTED, "Expected '->' after parameter name.");
+		auto param_type = consume(
+			{
+				TokenType::Bool,
+				TokenType::Number,
+				TokenType::String,
+			},
+			ErrorCode::EXPECTED,
+			"Expected valid type name."
+			);
+
+		// Check for duplicate parameter names
+		for (const auto& existing_param : parameters) {
+			if (existing_param.name.lexeme == param_name.lexeme) {
+				throw ParserException(
+					ErrorCode::ALREADY_DEFINED_VARIABLE,
+					std::format(
+						"Parameter '{}' is already defined.",
+						param_name.lexeme
+					)
+				);
+			}
+		}
+
+		parameters.push_back(Parameter{ std::move(param_name), std::move(param_type) });
+
+		if (!match(TokenType::Comma)) {
+			break;
+		}
+	}
+
+	consume(TokenType::RightParen, ErrorCode::EXPECTED, "Expected ')' after parameters.");
+
+	// return type
+	consume(TokenType::Arrow, ErrorCode::EXPECTED, "Expected '->' after parameters.");
+
+	auto return_type = consume(
+		{
+			TokenType::Bool,
+			TokenType::Number,
+			TokenType::String,
+			TokenType::Void, // Also accepts void return type
+		},
+		ErrorCode::EXPECTED,
+		"Expected valid return type name."
+		);
+
+	// body
+	auto body = statement();
+
+	//return std::make_unique<VariableDeclarationStmt>(keyword, name, declared_type, std::move(expr));
+	return std::make_unique<FunctionDeclarationStmt>(
+		std::move(keyword), 
+		std::move(name), 
+		std::move(parameters), 
+		std::move(return_type), 
+		std::move(body)
 	);
 }
 
@@ -455,23 +552,47 @@ std::unique_ptr<Expr> Parser::unary()
 		return std::make_unique<TypeOfExpr>(unary());
 	}
 
-	return index();
+	return postfix();
 }
 
-std::unique_ptr<Expr> Parser::index()
+std::unique_ptr<Expr> Parser::postfix()
 {
 	auto expr = primary();
 
-	while (match(TokenType::LeftBracket)) {
-		auto index_expr = expression();
+	while (true) {
+		if (match(TokenType::LeftBracket)) {
+			auto index_expr = expression();
 
-		consume(TokenType::RightBracket, ErrorCode::EXPECTED, "Expected ']' after index expression.");
+			consume(TokenType::RightBracket, ErrorCode::EXPECTED, "Expected ']' after index expression.");
 
-		expr = std::make_unique<IndexExpr>(
-			std::move(previous()), // token for index
-			std::move(expr),
-			std::move(index_expr)
-		);
+			expr = std::make_unique<IndexExpr>(
+				std::move(previous()), // token for postfix
+				std::move(expr),
+				std::move(index_expr)
+			);
+		} 
+		else if (match(TokenType::LeftParen)) {
+			Token paren = previous();
+			std::vector<std::unique_ptr<Expr>> arguments;
+
+			// Parse arguments
+			if (!check(TokenType::RightParen)) {
+				do {
+					arguments.push_back(expression());
+				} while (match(TokenType::Comma));
+			}
+
+			consume(TokenType::RightParen, ErrorCode::EXPECTED, "Expected ')' after arguments.");
+
+			expr = std::make_unique<CallExpr>(
+				std::move(expr),
+				std::move(paren),
+				std::move(arguments)
+			);
+		} 
+		else {
+			break;
+		}
 	}
 
 	return expr;

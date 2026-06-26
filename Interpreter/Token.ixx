@@ -44,6 +44,7 @@ export enum class TokenType {
 	Bool,
 	Number,
 	String,
+	Void, // Functions only atm
 
 	Out, // print 
 	Outln, // println
@@ -59,6 +60,9 @@ export enum class TokenType {
 	Else,
 
 	Typeof,
+
+	Func,
+	Return,
 
 	// Keywords End
 

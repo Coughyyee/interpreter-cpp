@@ -5,6 +5,7 @@ module;
 #include <format>
 #include <variant>
 #include <expected>
+#include <optional>
 
 export module Interpreter;
 
@@ -23,6 +24,9 @@ private:
 	//std::unordered_map<std::string, Variable> _variables;
 	std::vector<std::unordered_map<std::string, Variable>> _scopes;
 
+	std::unordered_map<std::string, std::shared_ptr<FunctionValue>> _functions;
+	std::optional<Value> _return_value;
+
 public:
 	explicit Interpreter(std::string source) : _source(std::move(source)) {
 		_scopes.emplace_back();
@@ -36,6 +40,8 @@ private:
 
 	void begin_scope();
 	void end_scope();
+
+	Value call_function(const std::shared_ptr<FunctionValue>& function, const std::vector<Value>& arguments, Token call_token);
 
 	Variable& lookup_variable(const std::string& name, Token token);
 	bool type_matches(const Value& value, TokenType declared_type) const noexcept;
@@ -244,6 +250,24 @@ void Interpreter::execute(const Stmt* stmt) {
 		return;
 	}
 
+	if (auto func_decl = dynamic_cast<const FunctionDeclarationStmt*>(stmt)) {
+		auto function = std::make_shared<FunctionValue>(
+			func_decl->parameters,
+			func_decl->return_type,
+			std::unique_ptr<Stmt>(const_cast<Stmt*>(func_decl->block.get()))
+		);
+
+		// Release ownership from original stmt's unique_ptr
+		const_cast<FunctionDeclarationStmt*>(func_decl)->block.release();
+
+		_functions[func_decl->name.lexeme] = function;
+		return;
+	}
+
+	if (auto return_stmt = dynamic_cast<const ReturnStmt*>(stmt)) {
+		_return_value = evaluate(return_stmt->value.get());
+		return;
+	}
 	// Todo: come back to
 	throw std::runtime_error{ "Unknown statement type." };
 
@@ -471,6 +495,7 @@ Value Interpreter::evaluate(const Expr* expr)
 		int index_value_int = static_cast<int>(std::get<double>(index_value)); // cast type to int for array indexing
 
 		auto array = std::get<std::shared_ptr<ArrayValue>>(target);
+
 		if (index_value_int < 0 || index_value_int >= array->elements.size()) {
 			throw RuntimeException(
 				ErrorCode::INDEX_OUT_OF_BOUNDS,
@@ -486,6 +511,35 @@ Value Interpreter::evaluate(const Expr* expr)
 		return array->elements[index_value_int];
 	}
 
+	if (auto call = dynamic_cast<const CallExpr*>(expr)) {
+		// Evaluate the callee - should be a variable pointing to a function
+		if (auto variable = dynamic_cast<const VariableExpr*>(call->callee.get())) {
+			auto it = _functions.find(variable->name.lexeme);
+			if (it == _functions.end()) {
+				throw RuntimeException(
+					ErrorCode::UNDEFINED_VARIABLE,
+					std::format("Undefined function '{}'.", variable->name.lexeme),
+					call->paren
+				);
+			}
+
+			// Evaluate all arguments
+			std::vector<Value> arg_values;
+			for (const auto& arg : call->arguments) {
+				arg_values.push_back(evaluate(arg.get()));
+			}
+
+			// Call the function
+			return call_function(it->second, arg_values, call->paren);
+		}
+
+		throw RuntimeException(
+			ErrorCode::INVALID_OPERAND,
+			"Can only call functions.",
+			call->paren
+		);
+	}
+
 	// Todo: come back to
 	throw std::runtime_error{ "Unknown expression type." };
 }
@@ -498,6 +552,82 @@ void Interpreter::begin_scope()
 void Interpreter::end_scope()
 {
 	_scopes.pop_back();
+}
+
+Value Interpreter::call_function(const std::shared_ptr<FunctionValue>& function, const std::vector<Value>& arguments, Token call_token)
+{
+	// Check argument count
+	if (arguments.size() != function->parameters.size()) {
+		throw RuntimeException(
+			ErrorCode::INVALID_OPERAND,
+			std::format(
+				"Expected {} arguments but got {}.",
+				function->parameters.size(),
+				arguments.size()
+			),
+			call_token
+		);
+	}
+
+	// Create new scope for function
+	begin_scope();
+	auto& func_scope = _scopes.back();
+
+	// Bind parameters
+	for (size_t i = 0; i < arguments.size(); ++i) {
+		const auto& param = function->parameters[i];
+		const auto& arg_value = arguments[i];
+
+		// Type check parameter
+		if (!type_matches(arg_value, param.type.type)) {
+			end_scope();
+			throw RuntimeException(
+				ErrorCode::TYPE_MISMATCH,
+				std::format(
+					"Parameter '{}' type mismatch. Expected '{}' but got different type.",
+					param.name.lexeme,
+					param.type.lexeme
+				),
+				call_token
+			);
+		}
+
+		func_scope[param.name.lexeme] = Variable{
+			param.type.type,
+			arg_value
+		};
+	}
+
+	// Execute function body
+	_return_value = std::nullopt;
+	try {
+		execute(function->body.get());
+	}
+	catch (...) {
+		end_scope();
+		throw;
+	}
+
+	// Type check return value if not void
+	if (function->return_type.type != TokenType::Void) {
+		if (_return_value.has_value() && !type_matches(_return_value.value(), function->return_type.type)) {
+			end_scope();
+			throw RuntimeException(
+				ErrorCode::TYPE_MISMATCH,
+				std::format(
+					"Function return type mismatch. Expected '{}' but got different type.",
+					function->return_type.lexeme
+				),
+				call_token
+			);
+		}
+	}
+
+	Value result = _return_value.value_or(Value{});
+	_return_value = std::nullopt;
+	end_scope();
+
+	return result;
 }
 
 Variable& Interpreter::lookup_variable(const std::string& name, Token token)
@@ -532,6 +662,11 @@ bool Interpreter::type_matches(const Value& value, TokenType declared_type) cons
 		return type_matches_array<std::string>(value);
 	case TokenType::BoolArray: 
 		return type_matches_array<bool>(value);
+
+	case TokenType::Void:
+		// Void should never be used in type_matches for variable declarations
+		// It's only for function return types, handled separately
+		return false;
 
 	default:
 		return false;
