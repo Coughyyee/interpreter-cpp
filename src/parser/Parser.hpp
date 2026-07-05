@@ -63,6 +63,12 @@ class Parser
      * @return True and calls advance() if match else false no advance()
      */
     [[nodiscard]] bool match(TokenType type);
+
+    /**
+     * @brief Check if current token matches one of the specified token types
+     * @param types Token types to match against.
+     * @return True and calls advance() if match else false no advance()
+     */
     [[nodiscard]] bool match(std::initializer_list<TokenType> types);
     [[nodiscard]] bool check(TokenType type) const noexcept;
     Token consume(TokenType type, ErrorCode code, const std::string& message);

@@ -75,16 +75,21 @@ struct AssignmentExpr : Expr
 
 struct TypeOfExpr : Expr
 {
+    Token token;
     std::unique_ptr<Expr> expr;
 
-    TypeOfExpr(std::unique_ptr<Expr> expr) : expr(std::move(expr)) {}
+    TypeOfExpr(Token token, std::unique_ptr<Expr> expr) : token(std::move(token)), expr(std::move(expr)) {}
 };
 
 struct ArrayExpr : Expr
 {
+    Token token;
     std::vector<std::unique_ptr<Expr>> elements;
 
-    ArrayExpr(std::vector<std::unique_ptr<Expr>> elements) : elements(std::move(elements)) {}
+    ArrayExpr(Token token, std::vector<std::unique_ptr<Expr>> elements)
+        : token(std::move(token)), elements(std::move(elements))
+    {
+    }
 };
 
 struct IndexExpr : Expr

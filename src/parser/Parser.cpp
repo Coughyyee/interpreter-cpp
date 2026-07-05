@@ -183,9 +183,16 @@ std::unique_ptr<Stmt> Parser::function_declaration_statement()
     // body
     auto body = statement();
 
+    // ensure next statement is a block
+    auto* block = dynamic_cast<BlockStmt*>(body.release());
+    if (!block)
+    {
+        throw ParserException(ErrorCode::EXPECTED, std::format("Expected a block after function '{}'.", name.lexeme));
+    }
+
     // return std::make_unique<VariableDeclarationStmt>(keyword, name, declared_type, std::move(expr));
     return std::make_unique<FunctionDeclarationStmt>(std::move(keyword), std::move(name), std::move(parameters),
-                                                     std::move(return_type), std::move(body));
+                                                     std::move(return_type), std::unique_ptr<BlockStmt>(block));
 }
 
 std::unique_ptr<Stmt> Parser::variable_declaration_statement()
@@ -420,7 +427,9 @@ std::unique_ptr<Expr> Parser::unary()
 
     if (match(TokenType::Typeof))
     {
-        return std::make_unique<TypeOfExpr>(unary());
+        Token token = previous();
+
+        return std::make_unique<TypeOfExpr>(token, unary());
     }
 
     return postfix();
@@ -470,6 +479,8 @@ std::unique_ptr<Expr> Parser::postfix()
 
 std::unique_ptr<Expr> Parser::array()
 {
+    Token token = previous();
+
     std::vector<std::unique_ptr<Expr>> elements;
 
     if (!check(TokenType::RightBracket))
@@ -482,7 +493,7 @@ std::unique_ptr<Expr> Parser::array()
 
     consume(TokenType::RightBracket, ErrorCode::EXPECTED, "Expected ']' after array.");
 
-    return std::make_unique<ArrayExpr>(std::move(elements));
+    return std::make_unique<ArrayExpr>(token, std::move(elements));
 }
 
 std::unique_ptr<Expr> Parser::primary()

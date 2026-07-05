@@ -41,446 +41,581 @@ void Interpreter::execute(const Stmt* stmt)
 {
     if (auto print_stmt = dynamic_cast<const PrintStmt*>(stmt))
     {
-        Value value = evaluate(print_stmt->expression.get());
-        bool new_line = print_stmt->new_line;
-
-        if (std::holds_alternative<double>(value))
-        {
-            new_line ? std::println("{}", std::get<double>(value)) : std::print("{}", std::get<double>(value));
-        }
-        else if (std::holds_alternative<std::string>(value))
-        {
-            new_line ? std::println("{}", std::get<std::string>(value))
-                     : std::print("{}", std::get<std::string>(value));
-        }
-        else if (std::holds_alternative<bool>(value))
-        {
-            new_line ? std::println("{}", std::get<bool>(value)) : std::print("{}", std::get<bool>(value));
-        }
-        // Array printing
-        else if (std::holds_alternative<std::shared_ptr<ArrayValue>>(value))
-        {
-            auto array = std::get<std::shared_ptr<ArrayValue>>(value);
-            std::print("[");
-
-            for (size_t i = 0; i < array->elements.size(); ++i)
-            {
-                const auto& element = array->elements[i];
-
-                if (std::holds_alternative<double>(element))
-                {
-                    std::print("{}", std::get<double>(element));
-                }
-                else if (std::holds_alternative<std::string>(element))
-                {
-                    std::print("{}", std::get<std::string>(element));
-                }
-                else if (std::holds_alternative<bool>(element))
-                {
-                    std::print("{}", std::get<bool>(element));
-                }
-
-                if (i + 1 < array->elements.size())
-                {
-                    std::print(", ");
-                }
-            }
-
-            std::print("]");
-
-            // if outln used
-            if (new_line)
-            {
-                std::print("\n");
-            }
-        }
-        // Error
-        else
-        {
-            throw RuntimeException(ErrorCode::UNKNOWN, "Unknown type.", print_stmt->keyword);
-        }
-
-        return;
+        return execute_print(print_stmt);
     }
 
-    if (auto var = dynamic_cast<const VariableDeclarationStmt*>(stmt))
+    if (auto var_stmt = dynamic_cast<const VariableDeclarationStmt*>(stmt))
     {
-        auto& current_scope = _scopes.back();
-
-        auto it = current_scope.find(var->name.lexeme);
-
-        // ensure variable isnt already been defined.
-        if (it != current_scope.end())
-        {
-            throw RuntimeException(ErrorCode::ALREADY_DEFINED_VARIABLE,
-                                   std::format("Variable already defined '{}'.", var->name.lexeme), var->name);
-        }
-
-        Value value = evaluate(var->expression.get());
-
-        // ensure type matches
-        if (!type_matches(value, var->declared_type.type))
-        {
-            throw RuntimeException(ErrorCode::TYPE_MISMATCH,
-                                   std::format("Expression returned incorrect data type. Expected '{}' return type.",
-                                               var->declared_type.lexeme),
-                                   var->name);
-        }
-
-        // creates the variable
-        current_scope[var->name.lexeme] = {
-            .declared_type = var->declared_type.type,
-            .value = value,
-        };
-
-        return;
+        return execute_variable_declaration(var_stmt);
     }
 
-    if (auto expression_stmt = dynamic_cast<const ExpressionStmt*>(stmt))
+    if (auto expr_stmt = dynamic_cast<const ExpressionStmt*>(stmt))
     {
-        evaluate(expression_stmt->expression.get());
-
-        // evaluates and does nothing
-        return;
+        return execute_expression(expr_stmt);
     }
 
-    if (auto block = dynamic_cast<const BlockStmt*>(stmt))
+    if (auto block_stmt = dynamic_cast<const BlockStmt*>(stmt))
     {
-        begin_scope();
-
-        try
-        {
-            for (const auto& statement : block->statements)
-            {
-                execute(statement.get());
-            }
-        }
-        catch (...)
-        {
-            end_scope();
-            throw;
-        }
-
-        end_scope();
-
-        return;
+        return execute_block(block_stmt);
     }
 
     if (auto if_stmt = dynamic_cast<const IfStmt*>(stmt))
     {
-        auto condition_result = evaluate(if_stmt->condition.get());
-
-        // if branch
-        if (is_truthy(condition_result))
-        {
-            execute(if_stmt->then_branch.get());
-        }
-        // else branch
-        else if (if_stmt->else_branch.has_value())
-        {
-            execute(if_stmt->else_branch.value().get());
-        }
-
-        return;
+        return execute_if(if_stmt);
     }
 
     if (auto loop_stmt = dynamic_cast<const LoopStmt*>(stmt))
     {
-        if (loop_stmt->condition.has_value())
-        {
-            while (true)
-            {
-                auto condition_result = evaluate(loop_stmt->condition.value().get());
-
-                // re-evaluate condition - break when condition is false
-                if (!is_truthy(condition_result))
-                {
-                    break;
-                }
-
-                execute(loop_stmt->block.get());
-            }
-        }
-        else
-        {
-            // infinite loop
-            while (true)
-            {
-                execute(loop_stmt->block.get());
-            }
-        }
-
-        return;
+        return execute_loop(loop_stmt);
     }
 
-    if (auto func_decl = dynamic_cast<const FunctionDeclarationStmt*>(stmt))
+    if (auto func_decl_stmt = dynamic_cast<const FunctionDeclarationStmt*>(stmt))
     {
-        auto function =
-            std::make_shared<FunctionValue>(func_decl->parameters, func_decl->return_type,
-                                            std::unique_ptr<Stmt>(const_cast<Stmt*>(func_decl->block.get())));
-
-        // Release ownership from original stmt's unique_ptr
-        const_cast<FunctionDeclarationStmt*>(func_decl)->block.release();
-
-        _functions[func_decl->name.lexeme] = function;
-        return;
+        return execute_function_declaration(func_decl_stmt);
     }
 
     if (auto return_stmt = dynamic_cast<const ReturnStmt*>(stmt))
     {
-        _return_value = evaluate(return_stmt->value.get());
-        return;
+        return execute_return(return_stmt);
     }
+
     // Todo: come back to
     throw std::runtime_error{"Unknown statement type."};
 }
 
 Value Interpreter::evaluate(const Expr* expr)
 {
-    if (auto literal = dynamic_cast<const LiteralExpr*>(expr))
+    if (auto literal_expr = dynamic_cast<const LiteralExpr*>(expr))
     {
-        switch (literal->value.type)
-        {
-        case TokenType::NumberLiteral:
-            return std::stod(literal->value.lexeme);
-        case TokenType::StringLiteral:
-            return literal->value.lexeme;
-        case TokenType::True:
-            return true;
-        case TokenType::False:
-            return false;
-
-        default:
-            throw RuntimeException(ErrorCode::UNKNOWN, "Unknown literal type.", literal->value);
-        }
+        return evaluate_literal(literal_expr);
     }
 
-    if (auto logical = dynamic_cast<const LogicalExpr*>(expr))
+    if (auto logical_expr = dynamic_cast<const LogicalExpr*>(expr))
     {
-        Value left = evaluate(logical->left.get());
-
-        if (logical->op.type == TokenType::Or)
-        {
-            if (is_truthy(left))
-                return left;
-        }
-        else
-        {
-            if (!is_truthy(left))
-                return left;
-        }
-
-        return evaluate(logical->right.get());
+        return evaluate_logic(logical_expr);
     }
 
-    if (auto binary = dynamic_cast<const BinaryExpr*>(expr))
+    if (auto binary_expr = dynamic_cast<const BinaryExpr*>(expr))
     {
-        Value left = evaluate(binary->left.get());
-        Value right = evaluate(binary->right.get());
-
-        try
-        {
-            switch (binary->op.type)
-            {
-            // Equality operators
-            case TokenType::EqualEqual:
-                return left == right;
-            case TokenType::BangEqual:
-                return left != right;
-
-                // Comparison operators - only work for numbers, throw error otherwise
-            case TokenType::MoreThan:
-                return as_number(left) > as_number(right);
-            case TokenType::MoreThanEqual:
-                return as_number(left) >= as_number(right);
-            case TokenType::LessThan:
-                return as_number(left) < as_number(right);
-            case TokenType::LessThanEqual:
-                return as_number(left) <= as_number(right);
-
-            // Mathematical operators
-            case TokenType::Plus:
-            {
-                // Numbers like numbers. Concatination for strings. Else throw error.
-                if (std::holds_alternative<double>(left) && std::holds_alternative<double>(right))
-                {
-                    return std::get<double>(left) + std::get<double>(right);
-                }
-                else if (std::holds_alternative<std::string>(left) && std::holds_alternative<std::string>(right))
-                {
-                    return std::get<std::string>(left) + std::get<std::string>(right);
-                }
-
-                throw RuntimeException(ErrorCode::INVALID_OPERANDS,
-                                       "Invalid operands for '+'. Both operands must be either numbers or strings.",
-                                       binary->op);
-            }
-            case TokenType::Minus:
-                return as_number(left) - as_number(right);
-            case TokenType::Multiply:
-                // todo: allow string * number for repeating strings ?
-                return as_number(left) * as_number(right);
-            case TokenType::Divide:
-                if (as_number(left) == 0 || as_number(right) == 0)
-                {
-                    // TODO: pass left or right depending on which ones 0
-                    throw RuntimeException(ErrorCode::DIVISION_BY_0, "Division by 0 is forbidden.", binary->op);
-                }
-                return as_number(left) / as_number(right);
-
-            default:
-                throw RuntimeException(ErrorCode::UNKNOWN, "Unkown binary operator.", binary->op);
-            }
-        }
-        catch (const std::logic_error& err)
-        {
-            // thrown from as_number().
-
-            // re-throw with custom error class
-            throw RuntimeException(ErrorCode::TYPE_MISMATCH, err.what(), binary->op);
-        }
+        return evaluate_binary(binary_expr);
     }
 
-    if (auto unary = dynamic_cast<const UnaryExpr*>(expr))
+    if (auto unary_expr = dynamic_cast<const UnaryExpr*>(expr))
     {
-        Value value = evaluate(unary->expr.get());
-
-        switch (unary->op.type)
-        {
-        case TokenType::Minus:
-        {
-            // Numbers only.
-            if (!std::holds_alternative<double>(value))
-            {
-                throw RuntimeException(ErrorCode::INVALID_OPERAND, "Invalid operand for '-'. Operand must be a number.",
-                                       unary->op);
-            }
-
-            return -std::get<double>(value);
-        }
-        case TokenType::Bang:
-            // have a look at
-            // currently C like (!0 = true = 1, !10 = false = 0)
-            return !is_truthy(value);
-
-        default:
-            throw RuntimeException(ErrorCode::UNKNOWN, "Unkown unary operator.", unary->op);
-        }
+        return evaluate_unary(unary_expr);
     }
 
-    if (auto type_of = dynamic_cast<const TypeOfExpr*>(expr))
+    if (auto type_of_expr = dynamic_cast<const TypeOfExpr*>(expr))
     {
-        Value value = evaluate(type_of->expr.get());
-
-        if (std::holds_alternative<double>(value))
-            return std::string("number");
-        if (std::holds_alternative<bool>(value))
-            return std::string("bool");
-        if (std::holds_alternative<std::string>(value))
-            return std::string("string");
+        return evaluate_type_of(type_of_expr);
     }
 
-    if (auto grouping = dynamic_cast<const GroupingExpr*>(expr))
+    if (auto grouping_expr = dynamic_cast<const GroupingExpr*>(expr))
     {
-        return evaluate(grouping->expr.get());
+        return evaluate_group(grouping_expr);
     }
 
-    if (auto variable = dynamic_cast<const VariableExpr*>(expr))
+    if (auto variable_expr = dynamic_cast<const VariableExpr*>(expr))
     {
-        return lookup_variable(variable->name.lexeme, variable->name).value;
+        return evaluate_variable(variable_expr);
     }
 
-    if (auto assignment = dynamic_cast<const AssignmentExpr*>(expr))
+    if (auto assignment_expr = dynamic_cast<const AssignmentExpr*>(expr))
     {
-        Value value = evaluate(assignment->value.get());
-
-        auto& variable = lookup_variable(assignment->name.lexeme, assignment->name);
-
-        if (!type_matches(value, variable.declared_type))
-        {
-            throw RuntimeException(ErrorCode::TYPE_MISMATCH,
-                                   std::format("Expression returned mismatched data type. Expected '{}' return type.",
-                                               variable.get_type_name()),
-                                   assignment->name);
-        }
-
-        variable.value = value;
-
-        return value;
+        return evaluate_assignment(assignment_expr);
     }
 
-    if (auto array = dynamic_cast<const ArrayExpr*>(expr))
+    if (auto array_expr = dynamic_cast<const ArrayExpr*>(expr))
     {
-        auto result = std::make_shared<ArrayValue>();
-
-        for (const auto& element : array->elements)
-        {
-            result->elements.push_back(evaluate(element.get()));
-        }
-
-        return result;
+        return evaluate_array(array_expr);
     }
 
-    if (auto index = dynamic_cast<const IndexExpr*>(expr))
+    if (auto index_expr = dynamic_cast<const IndexExpr*>(expr))
     {
-        Value target = evaluate(index->target.get());
-        if (!std::holds_alternative<std::shared_ptr<ArrayValue>>(target))
-        {
-            throw RuntimeException(ErrorCode::INVALID_OPERAND, "Invalid operand for index. Target must be an array.",
-                                   index->token);
-        }
-
-        Value index_value = evaluate(index->index.get());
-        if (!std::holds_alternative<double>(index_value))
-        {
-            throw RuntimeException(ErrorCode::INVALID_OPERAND, "Invalid operand for index. Index must be a number.",
-                                   index->token);
-        }
-
-        int index_value_int = static_cast<int>(std::get<double>(index_value)); // cast type to int for array indexing
-
-        auto array = std::get<std::shared_ptr<ArrayValue>>(target);
-
-        if (index_value_int < 0 || index_value_int >= array->elements.size())
-        {
-            throw RuntimeException(ErrorCode::INDEX_OUT_OF_BOUNDS,
-                                   std::format("Index out of bounds. Index {} is not valid for array of size {}.",
-                                               index_value_int, array->elements.size()),
-                                   index->token);
-        }
-
-        return array->elements[index_value_int];
+        return evaluate_index(index_expr);
     }
 
-    if (auto call = dynamic_cast<const CallExpr*>(expr))
+    if (auto call_expr = dynamic_cast<const CallExpr*>(expr))
     {
-        // Evaluate the callee - should be a variable pointing to a function
-        if (auto variable = dynamic_cast<const VariableExpr*>(call->callee.get()))
-        {
-            auto it = _functions.find(variable->name.lexeme);
-            if (it == _functions.end())
-            {
-                throw RuntimeException(ErrorCode::UNDEFINED_VARIABLE,
-                                       std::format("Undefined function '{}'.", variable->name.lexeme), call->paren);
-            }
-
-            // Evaluate all arguments
-            std::vector<Value> arg_values;
-            for (const auto& arg : call->arguments)
-            {
-                arg_values.push_back(evaluate(arg.get()));
-            }
-
-            // Call the function
-            return call_function(it->second, arg_values, call->paren);
-        }
-
-        throw RuntimeException(ErrorCode::INVALID_OPERAND, "Can only call functions.", call->paren);
+        return evaluate_call(call_expr);
     }
 
     // Todo: come back to
     throw std::runtime_error{"Unknown expression type."};
 }
+
+#pragma region execution
+void Interpreter::execute_print(const PrintStmt* stmt)
+{
+    Value value = evaluate(stmt->expression.get());
+    bool new_line = stmt->new_line;
+
+    if (std::holds_alternative<double>(value))
+    {
+        new_line ? std::println("{}", std::get<double>(value)) : std::print("{}", std::get<double>(value));
+    }
+    else if (std::holds_alternative<std::string>(value))
+    {
+        new_line ? std::println("{}", std::get<std::string>(value)) : std::print("{}", std::get<std::string>(value));
+    }
+    else if (std::holds_alternative<bool>(value))
+    {
+        new_line ? std::println("{}", std::get<bool>(value)) : std::print("{}", std::get<bool>(value));
+    }
+    // Array printing
+    else if (std::holds_alternative<std::shared_ptr<ArrayValue>>(value))
+    {
+        auto array = std::get<std::shared_ptr<ArrayValue>>(value);
+        std::print("[");
+
+        for (size_t i = 0; i < array->elements.size(); ++i)
+        {
+            const auto& element = array->elements[i];
+
+            if (std::holds_alternative<double>(element))
+            {
+                std::print("{}", std::get<double>(element));
+            }
+            else if (std::holds_alternative<std::string>(element))
+            {
+                std::print("{}", std::get<std::string>(element));
+            }
+            else if (std::holds_alternative<bool>(element))
+            {
+                std::print("{}", std::get<bool>(element));
+            }
+
+            if (i + 1 < array->elements.size())
+            {
+                std::print(", ");
+            }
+        }
+
+        std::print("]");
+
+        // if outln used
+        if (new_line)
+        {
+            std::print("\n");
+        }
+    }
+    // Error
+    else
+    {
+        throw RuntimeException(ErrorCode::UNKNOWN, "Unknown type.", stmt->keyword);
+    }
+}
+void Interpreter::execute_variable_declaration(const VariableDeclarationStmt* stmt)
+{
+    auto& current_scope = _scopes.back();
+
+    auto it = current_scope.find(stmt->name.lexeme);
+
+    // ensure variable isnt already been defined.
+    if (it != current_scope.end())
+    {
+        throw RuntimeException(ErrorCode::ALREADY_DEFINED_VARIABLE,
+                               std::format("Variable already defined '{}'.", stmt->name.lexeme), stmt->name);
+    }
+
+    Value value = evaluate(stmt->expression.get());
+
+    // ensure type matches
+    if (!type_matches(value, stmt->declared_type.type))
+    {
+        // if array type return slightly different error message
+        if (std::holds_alternative<std::shared_ptr<ArrayValue>>(value))
+        {
+            throw RuntimeException(
+                ErrorCode::TYPE_MISMATCH,
+                std::format(
+                    "Expression returned incorrect data type(s). Expected array to contain values of '{}' type.",
+                    stmt->declared_type.lexeme),
+                stmt->keyword);
+        }
+
+        // general error
+        throw RuntimeException(
+            ErrorCode::TYPE_MISMATCH,
+            std::format("Expression returned incorrect data type. Expected '{}' type.", stmt->declared_type.lexeme),
+            stmt->keyword);
+    }
+
+    // creates the variable
+    current_scope[stmt->name.lexeme] = {
+        .declared_type = stmt->declared_type.type,
+        .value = value,
+    };
+}
+void Interpreter::execute_expression(const ExpressionStmt* stmt)
+{
+    // evaluates and does nothing
+    evaluate(stmt->expression.get());
+}
+void Interpreter::execute_block(const BlockStmt* stmt)
+{
+    begin_scope();
+
+    try
+    {
+        for (const auto& statement : stmt->statements)
+        {
+            execute(statement.get());
+        }
+    }
+    catch (...)
+    {
+        end_scope();
+        throw;
+    }
+
+    end_scope();
+}
+void Interpreter::execute_if(const IfStmt* stmt)
+{
+    auto condition_result = evaluate(stmt->condition.get());
+
+    // if branch
+    if (is_truthy(condition_result))
+    {
+        execute(stmt->then_branch.get());
+    }
+    // else branch
+    else if (stmt->else_branch.has_value())
+    {
+        execute(stmt->else_branch.value().get());
+    }
+}
+void Interpreter::execute_loop(const LoopStmt* stmt)
+{
+    if (stmt->condition.has_value())
+    {
+        while (true)
+        {
+            auto condition_result = evaluate(stmt->condition.value().get());
+
+            // re-evaluate condition - break when condition is false
+            if (!is_truthy(condition_result))
+            {
+                break;
+            }
+
+            execute(stmt->block.get());
+        }
+    }
+    else
+    {
+        // infinite loop
+        while (true)
+        {
+            execute(stmt->block.get());
+        }
+    }
+}
+void Interpreter::execute_function_declaration(const FunctionDeclarationStmt* stmt)
+{
+    // Release ownership from original stmt's unique_ptr
+    auto function = std::make_shared<FunctionValue>(stmt->parameters, stmt->return_type, stmt->block.get());
+
+    _functions[stmt->name.lexeme] = function;
+}
+void Interpreter::execute_return(const ReturnStmt* stmt)
+{
+    _return_value = evaluate(stmt->value.get());
+}
+#pragma endregion
+
+#pragma region evaluation
+Value Interpreter::evaluate_literal(const LiteralExpr* expr)
+{
+    switch (expr->value.type)
+    {
+    case TokenType::NumberLiteral:
+        return std::stod(expr->value.lexeme);
+    case TokenType::StringLiteral:
+        return expr->value.lexeme;
+    case TokenType::True:
+        return true;
+    case TokenType::False:
+        return false;
+
+    default:
+        throw RuntimeException(ErrorCode::UNKNOWN, "Unknown literal type.", expr->value);
+    }
+}
+Value Interpreter::evaluate_logic(const LogicalExpr* expr)
+{
+    Value left = evaluate(expr->left.get());
+
+    if (expr->op.type == TokenType::Or)
+    {
+        if (is_truthy(left))
+            return left;
+    }
+    else
+    {
+        if (!is_truthy(left))
+            return left;
+    }
+
+    return evaluate(expr->right.get());
+}
+Value Interpreter::evaluate_binary(const BinaryExpr* expr)
+{
+    Value left = evaluate(expr->left.get());
+    Value right = evaluate(expr->right.get());
+
+    try
+    {
+        switch (expr->op.type)
+        {
+        // Equality operators
+        case TokenType::EqualEqual:
+            return left == right;
+        case TokenType::BangEqual:
+            return left != right;
+
+            // Comparison operators - only work for numbers, throw error otherwise
+        case TokenType::MoreThan:
+            return as_number(left) > as_number(right);
+        case TokenType::MoreThanEqual:
+            return as_number(left) >= as_number(right);
+        case TokenType::LessThan:
+            return as_number(left) < as_number(right);
+        case TokenType::LessThanEqual:
+            return as_number(left) <= as_number(right);
+
+        // Mathematical operators
+        case TokenType::Plus:
+        {
+            // Numbers like numbers. Concatination for strings. Else throw error.
+            if (std::holds_alternative<double>(left) && std::holds_alternative<double>(right))
+            {
+                return std::get<double>(left) + std::get<double>(right);
+            }
+            else if (std::holds_alternative<std::string>(left) && std::holds_alternative<std::string>(right))
+            {
+                return std::get<std::string>(left) + std::get<std::string>(right);
+            }
+
+            throw RuntimeException(ErrorCode::INVALID_OPERANDS,
+                                   "Invalid operands for '+'. Both operands must be either numbers or strings.",
+                                   expr->op);
+        }
+        case TokenType::Minus:
+            return as_number(left) - as_number(right);
+        case TokenType::Multiply:
+            // todo: allow string * number for repeating strings ?
+            return as_number(left) * as_number(right);
+        case TokenType::Divide:
+            if (as_number(left) == 0 || as_number(right) == 0)
+            {
+                // TODO: pass left or right depending on which ones 0
+                throw RuntimeException(ErrorCode::DIVISION_BY_0, "Division by 0 is forbidden.", expr->op);
+            }
+            return as_number(left) / as_number(right);
+
+        default:
+            throw RuntimeException(ErrorCode::UNKNOWN, "Unkown binary operator.", expr->op);
+        }
+    }
+    catch (const std::logic_error& err)
+    {
+        // thrown from as_number().
+
+        // re-throw with custom error class
+        throw RuntimeException(ErrorCode::TYPE_MISMATCH, err.what(), expr->op);
+    }
+}
+Value Interpreter::evaluate_unary(const UnaryExpr* expr)
+{
+    Value value = evaluate(expr->expr.get());
+
+    switch (expr->op.type)
+    {
+    case TokenType::Minus:
+    {
+        // Numbers only.
+        if (!std::holds_alternative<double>(value))
+        {
+            throw RuntimeException(ErrorCode::INVALID_OPERAND, "Invalid operand for '-'. Operand must be a number.",
+                                   expr->op);
+        }
+
+        return -std::get<double>(value);
+    }
+    case TokenType::Bang:
+        // have a look at
+        // currently C like (!0 = true = 1, !10 = false = 0)
+        return !is_truthy(value);
+
+    default:
+        throw RuntimeException(ErrorCode::UNKNOWN, "Unkown unary operator.", expr->op);
+    }
+}
+Value Interpreter::evaluate_type_of(const TypeOfExpr* expr)
+{
+    Value value = evaluate(expr->expr.get());
+
+    if (std::holds_alternative<double>(value))
+        return std::string("number");
+    if (std::holds_alternative<bool>(value))
+        return std::string("bool");
+    if (std::holds_alternative<std::string>(value))
+        return std::string("string");
+    if (std::holds_alternative<std::shared_ptr<ArrayValue>>(value))
+    {
+        auto array = std::get<std::shared_ptr<ArrayValue>>(value);
+
+        switch (array->element_type)
+        {
+        case TokenType::Number:
+            return std::string("number[]");
+
+        case TokenType::String:
+            return std::string("string[]");
+
+        case TokenType::Bool:
+            return std::string("bool[]");
+
+        default:
+            return std::string("array");
+        }
+    }
+
+    throw RuntimeException(ErrorCode::INVALID_TYPE, "Expression returns invalid type.", expr->token);
+}
+Value Interpreter::evaluate_group(const GroupingExpr* expr)
+{
+    return evaluate(expr->expr.get());
+}
+Value Interpreter::evaluate_variable(const VariableExpr* expr)
+{
+    return lookup_variable(expr->name.lexeme, expr->name).value;
+}
+Value Interpreter::evaluate_assignment(const AssignmentExpr* expr)
+{
+    Value value = evaluate(expr->value.get());
+
+    auto& variable = lookup_variable(expr->name.lexeme, expr->name);
+
+    if (!type_matches(value, variable.declared_type))
+    {
+        throw RuntimeException(ErrorCode::TYPE_MISMATCH,
+                               std::format("Expression returned mismatched data type. Expected '{}' return type.",
+                                           variable.get_type_name()),
+                               expr->name);
+    }
+
+    variable.value = value;
+
+    return value;
+}
+Value Interpreter::evaluate_array(const ArrayExpr* expr)
+{
+    auto result = std::make_shared<ArrayValue>();
+
+    // Empty array
+    if (expr->elements.empty())
+    {
+        result->element_type = TokenType::Void;
+        return result;
+    }
+
+    // Evaluate first element
+    Value first = evaluate(expr->elements[0].get());
+
+    result->elements.push_back(first);
+
+    // Determine runtime type
+    if (std::holds_alternative<double>(first))
+    {
+        result->element_type = TokenType::Number;
+    }
+    else if (std::holds_alternative<std::string>(first))
+    {
+        result->element_type = TokenType::String;
+    }
+    else if (std::holds_alternative<bool>(first))
+    {
+        result->element_type = TokenType::Bool;
+    }
+    else
+    {
+        throw RuntimeException(ErrorCode::INVALID_TYPE, "Invalid array element type.", expr->token);
+    }
+
+    // Remaining elements
+    for (size_t i = 1; i < expr->elements.size(); ++i)
+    {
+        Value value = evaluate(expr->elements[i].get());
+
+        if (!type_matches(value, result->element_type))
+        {
+            throw RuntimeException(ErrorCode::TYPE_MISMATCH, "Array contains mixed element types.", expr->token);
+        }
+
+        result->elements.push_back(std::move(value));
+    }
+
+    return result;
+}
+Value Interpreter::evaluate_index(const IndexExpr* expr)
+{
+    Value target = evaluate(expr->target.get());
+    if (!std::holds_alternative<std::shared_ptr<ArrayValue>>(target))
+    {
+        throw RuntimeException(ErrorCode::INVALID_OPERAND, "Invalid operand for index. Target must be an array.",
+                               expr->token);
+    }
+
+    Value index_value = evaluate(expr->index.get());
+    if (!std::holds_alternative<double>(index_value))
+    {
+        throw RuntimeException(ErrorCode::INVALID_OPERAND, "Invalid operand for index. Index must be a number.",
+                               expr->token);
+    }
+
+    int index_value_int = static_cast<int>(std::get<double>(index_value)); // cast type to int for array indexing
+
+    auto array = std::get<std::shared_ptr<ArrayValue>>(target);
+
+    if (index_value_int < 0 || index_value_int >= array->elements.size())
+    {
+        throw RuntimeException(ErrorCode::INDEX_OUT_OF_BOUNDS,
+                               std::format("Index out of bounds. Index {} is not valid for array of size {}.",
+                                           index_value_int, array->elements.size()),
+                               expr->token);
+    }
+
+    return array->elements[index_value_int];
+}
+Value Interpreter::evaluate_call(const CallExpr* expr)
+{
+    // Evaluate the callee - should be a variable pointing to a function
+    if (auto variable = dynamic_cast<const VariableExpr*>(expr->callee.get()))
+    {
+        auto it = _functions.find(variable->name.lexeme);
+        if (it == _functions.end())
+        {
+            throw RuntimeException(ErrorCode::UNDEFINED_VARIABLE,
+                                   std::format("Undefined function '{}'.", variable->name.lexeme), expr->paren);
+        }
+
+        // Evaluate all arguments
+        std::vector<Value> arg_values;
+        for (const auto& arg : expr->arguments)
+        {
+            arg_values.push_back(evaluate(arg.get()));
+        }
+
+        // Call the function
+        return call_function(it->second, arg_values, expr->paren);
+    }
+
+    throw RuntimeException(ErrorCode::INVALID_OPERAND, "Can only call functions.", expr->paren);
+}
+#pragma endregion
 
 void Interpreter::begin_scope()
 {
@@ -531,7 +666,7 @@ Value Interpreter::call_function(const std::shared_ptr<FunctionValue>& function,
     _return_value = std::nullopt;
     try
     {
-        execute(function->body.get());
+        execute(function->body);
     }
     catch (...)
     {
@@ -572,7 +707,27 @@ Variable& Interpreter::lookup_variable(const std::string& name, Token token)
     throw RuntimeException(ErrorCode::UNDEFINED_VARIABLE, std::format("Undefined variable '{}'.", name), token);
 }
 
-bool Interpreter::type_matches(const Value& value, TokenType declared_type) const noexcept
+double Interpreter::as_number(const Value& value)
+{
+    if (!std::holds_alternative<double>(value))
+    {
+        throw std::logic_error{"Expected a number."};
+    }
+
+    return std::get<double>(value);
+}
+
+std::string Interpreter::as_string(const Value& value)
+{
+    if (!std::holds_alternative<std::string>(value))
+    {
+        throw std::logic_error{"Expected a string."};
+    }
+
+    return std::get<std::string>(value);
+}
+
+bool Interpreter::type_matches(const Value& value, TokenType declared_type) noexcept
 {
     using enum TokenType;
 
@@ -602,7 +757,7 @@ bool Interpreter::type_matches(const Value& value, TokenType declared_type) cons
     }
 }
 
-template <ArrayElementType T> bool Interpreter::type_matches_array(const Value& value) const
+template <ArrayElementType T> bool Interpreter::type_matches_array(const Value& value)
 {
     if (!std::holds_alternative<std::shared_ptr<ArrayValue>>(value))
     {
@@ -610,18 +765,26 @@ template <ArrayElementType T> bool Interpreter::type_matches_array(const Value& 
     }
 
     auto array = std::get<std::shared_ptr<ArrayValue>>(value);
-    for (const auto& element : array->elements)
+
+    if constexpr (std::same_as<T, double>)
     {
-        if (!std::holds_alternative<T>(element))
-        {
-            return false;
-        }
+        return array->element_type == TokenType::Number;
     }
 
-    return true;
+    if constexpr (std::same_as<T, std::string>)
+    {
+        return array->element_type == TokenType::String;
+    }
+
+    if constexpr (std::same_as<T, bool>)
+    {
+        return array->element_type == TokenType::Bool;
+    }
+
+    return false;
 }
 
-bool Interpreter::is_truthy(const Value& value) const noexcept
+bool Interpreter::is_truthy(const Value& value) noexcept
 {
     if (std::holds_alternative<bool>(value))
     {
@@ -641,24 +804,4 @@ bool Interpreter::is_truthy(const Value& value) const noexcept
     }
 
     return false;
-}
-
-double Interpreter::as_number(const Value& value) const
-{
-    if (!std::holds_alternative<double>(value))
-    {
-        throw std::logic_error{"Expected a number."};
-    }
-
-    return std::get<double>(value);
-}
-
-std::string Interpreter::as_string(const Value& value) const
-{
-    if (!std::holds_alternative<std::string>(value))
-    {
-        throw std::logic_error{"Expected a string."};
-    }
-
-    return std::get<std::string>(value);
 }

@@ -1,2 +1,14 @@
 build/
 .cache/
+
+build/
+.vs/
+x64/
+Debug/
+Release/
+
+*.obj
+*.pch
+*.pdb
+*.ilk
+*.exe

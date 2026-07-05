@@ -4,12 +4,21 @@
 // logging arrow and position is off with error printing
 
 func foo() -> void {
-	out "Hello World!";
+	outln "Hello World!";
 }
 
 func add(x -> number, y -> number) -> void {
-	out x + y;
+	outln x + y;
+}
+
+func r(x -> number) -> number {
+    return x;
 }
 
 foo();
 add(1, 2);
+outln r(20);
+
+var a -> string[] = [1,2,3];
+
+outln typeof a;

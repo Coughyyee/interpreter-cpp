@@ -35,6 +35,31 @@ class Interpreter
     void execute(const Stmt* stmt);
     Value evaluate(const Expr* expr);
 
+#pragma region execution
+    void execute_print(const PrintStmt* stmt);
+    void execute_variable_declaration(const VariableDeclarationStmt* stmt);
+    void execute_expression(const ExpressionStmt* stmt);
+    void execute_block(const BlockStmt* stmt);
+    void execute_if(const IfStmt* stmt);
+    void execute_loop(const LoopStmt* stmt);
+    void execute_function_declaration(const FunctionDeclarationStmt* stmt);
+    void execute_return(const ReturnStmt* stmt);
+#pragma endregion
+
+#pragma region evaluation
+    Value evaluate_literal(const LiteralExpr* expr);
+    Value evaluate_logic(const LogicalExpr* expr);
+    Value evaluate_binary(const BinaryExpr* expr);
+    Value evaluate_unary(const UnaryExpr* expr);
+    Value evaluate_type_of(const TypeOfExpr* expr);
+    Value evaluate_group(const GroupingExpr* expr);
+    Value evaluate_variable(const VariableExpr* expr);
+    Value evaluate_assignment(const AssignmentExpr* expr);
+    Value evaluate_array(const ArrayExpr* expr);
+    Value evaluate_index(const IndexExpr* expr);
+    Value evaluate_call(const CallExpr* expr);
+#pragma endregion
+
     void begin_scope();
     void end_scope();
 
@@ -42,16 +67,17 @@ class Interpreter
                         Token call_token);
 
     Variable& lookup_variable(const std::string& name, Token token);
-    [[nodiscard]] bool type_matches(const Value& value, TokenType declared_type) const noexcept;
-    template <ArrayElementType T> bool type_matches_array(const Value& value) const;
-    [[nodiscard]] bool is_truthy(const Value& value) const noexcept;
 
     /**
      * @throws logic error if value not double.
      */
-    [[nodiscard]] double as_number(const Value& value) const;
+    [[nodiscard]] static double as_number(const Value& value);
     /**
      * @throws logic error if value not string.
      */
-    [[nodiscard]] std::string as_string(const Value& value) const;
+    [[nodiscard]] static std::string as_string(const Value& value);
+
+    [[nodiscard]] static bool type_matches(const Value& value, TokenType declared_type) noexcept;
+    template <ArrayElementType T> [[nodiscard]] static bool type_matches_array(const Value& value);
+    [[nodiscard]] static bool is_truthy(const Value& value) noexcept;
 };

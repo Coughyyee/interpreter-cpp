@@ -14,6 +14,9 @@ struct Stmt
     virtual ~Stmt() = default;
 };
 
+/**
+ * @brief Expression
+ */
 struct ExpressionStmt : Stmt
 {
     Token keyword;
@@ -25,6 +28,9 @@ struct ExpressionStmt : Stmt
     }
 };
 
+/**
+ * @brief Print statement, manages out / outln
+ */
 struct PrintStmt : Stmt
 {
     Token keyword;
@@ -37,6 +43,9 @@ struct PrintStmt : Stmt
     }
 };
 
+/**
+ * @brief Manages variable declarations `var x -> <type> = <expr>;`
+ */
 struct VariableDeclarationStmt : Stmt
 {
     Token keyword;
@@ -51,6 +60,9 @@ struct VariableDeclarationStmt : Stmt
     }
 };
 
+/**
+ * @brief Manages blocks
+ */
 struct BlockStmt : Stmt
 {
     std::vector<std::unique_ptr<Stmt>> statements;
@@ -58,6 +70,9 @@ struct BlockStmt : Stmt
     BlockStmt(std::vector<std::unique_ptr<Stmt>> statements) : statements(std::move(statements)) {}
 };
 
+/**
+ * @brief Manages loops `loop {..}` or `loop <condition> {...}`
+ */
 struct LoopStmt : Stmt
 {
     Token keyword;
@@ -71,6 +86,9 @@ struct LoopStmt : Stmt
     }
 };
 
+/**
+ * @brief Manages if conditions `if (<condition>) {...}` and optional `else {...}`
+ */
 struct IfStmt : Stmt
 {
     Token keyword;
@@ -86,27 +104,39 @@ struct IfStmt : Stmt
     }
 };
 
+/* Functions */
 struct Parameter
 {
     Token name;
     Token type;
 };
 
+/**
+ * @brief Manages function declarations `func x(<params...>) -> <return-type> {...}`
+ *
+ * @param
+ * @return
+ * @throws
+ */
 struct FunctionDeclarationStmt : Stmt
 {
     Token keyword;
     Token name;
     std::vector<Parameter> parameters;
     Token return_type;
-    std::unique_ptr<Stmt> block;
+    std::unique_ptr<BlockStmt> block; // expects a blockstmt
+
     FunctionDeclarationStmt(Token keyword, Token name, std::vector<Parameter> parameters, Token return_type,
-                            std::unique_ptr<Stmt> block)
+                            std::unique_ptr<BlockStmt> block)
         : keyword(std::move(keyword)), name(std::move(name)), parameters(std::move(parameters)),
           return_type(std::move(return_type)), block(std::move(block))
     {
     }
 };
 
+/**
+ * @brief Manages return expressions in functions.
+ */
 struct ReturnStmt : Stmt
 {
     Token keyword;
