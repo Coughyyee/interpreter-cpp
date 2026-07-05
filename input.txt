@@ -1,0 +1,15 @@
+// This file's path is added as a cli argument therefore code within here executes.
+
+// Current errors:
+// logging arrow and position is off with error printing
+
+func foo() -> void {
+	out "Hello World!";
+}
+
+func add(x -> number, y -> number) -> void {
+	out x + y;
+}
+
+foo();
+add(1, 2);

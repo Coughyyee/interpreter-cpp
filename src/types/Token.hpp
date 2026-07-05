@@ -1,9 +1,8 @@
-module;
+#pragma once
+
 #include <string>
 
-export module Token;
-
-export enum class TokenType {
+enum class TokenType {
 	NumberLiteral,
 	StringLiteral,
 	Identifier,
@@ -44,8 +43,9 @@ export enum class TokenType {
 	Bool,
 	Number,
 	String,
+	Void, // Functions only atm
 
-	Out, // print 
+	Out, // print
 	Outln, // println
 	Var,
 	True,
@@ -53,12 +53,15 @@ export enum class TokenType {
 
 	And,
 	Or,
-	
+
 	Loop,
 	If,
 	Else,
 
 	Typeof,
+
+	Func,
+	Return,
 
 	// Keywords End
 
@@ -68,12 +71,10 @@ export enum class TokenType {
 	Eof
 };
 
-export struct Token {
+struct Token {
 	TokenType type;
 	std::string lexeme;
 
 	size_t line;
 	size_t column;
 };
-
-

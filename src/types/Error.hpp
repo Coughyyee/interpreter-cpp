@@ -1,9 +1,9 @@
-module;
+#pragma once
+
 #include <string>
-export module Error;
 
 // Interpreter stages for error reporting.
-export enum StageCode {
+enum StageCode {
 	// TODO: implement
 	READING_SOURCE = 0, // A
 	LEXER, // B
@@ -12,7 +12,7 @@ export enum StageCode {
 };
 
 // Error codes for different error types.
-export enum ErrorCode {
+enum ErrorCode {
 	UNKNOWN = 0,
 
 	UNEXPECTED_CHAR,
@@ -29,7 +29,7 @@ export enum ErrorCode {
 	INDEX_OUT_OF_BOUNDS,
 };
 
-export struct Error {
+struct Error {
 	ErrorCode code;
 	std::string message;
 	size_t line;

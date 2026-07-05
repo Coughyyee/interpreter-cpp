@@ -8,8 +8,9 @@ This is a little project ive taken upon myself to create an interpreter from scr
 - Enforce types within the language for variables (int, float, string, etc.).
 
 ## Project Setup
-C++ Version: 23
-C++ Modules: Yes
+- C++ Version: 23
+- CMake
+- clang++
 
 ## Language Features
 
@@ -71,3 +72,7 @@ All of the following operators are implemented inside of the language.
 * `if` - Defines a if statement. Format: `if (<expression>) {...`.
 * `else` - Defines an else block to an if, if the condition is falsey. Format: `if (...) {...} else {...`.
 
+#### Functions
+
+* `func` - Defines a function. An example of a function is as follows: `func foo(x -> number) -> number {...}`. Functions must explicitly define parameter types and a return type, even if the function doesn't return anything, it should still be marked with ` -> void {..`. 
+* `return` - Returns a value from the function.

@@ -1,0 +1,149 @@
+﻿How To Read Grammar:
+"<value>"      = Character(s) expected.
+->             = Consists of.
+()             = Grouping.
+|              = Or.
+*              = Zero or more times.
+?              = Zero or one time.
+;              = End.
+IDENTIFIER     = Variable/function name token.
+EOF            = End-of-file token.
+
+Grammar:
+
+program
+    -> declaration* EOF ;
+
+declaration
+    -> functionDeclaration
+    | variableDeclaration
+    | statement ;
+
+statement
+    -> blockStatement
+    | ifStatement
+    | loopStatement
+    | returnStatement
+    | printStatement
+    | expressionStatement ;
+
+blockStatement
+    -> "{" declaration* "}" ;
+
+functionDeclaration
+    -> "func"
+       IDENTIFIER
+       "(" parameters? ")"
+       ( "->" type )?
+       blockStatement ;
+
+parameters
+    -> parameter ( "," parameter )* ;
+
+parameter
+    -> IDENTIFIER
+       "->"
+       type ;
+
+variableDeclaration
+    -> "var"
+       IDENTIFIER
+       "->"
+       type
+       "="
+       expression
+       ";" ;
+
+type
+    -> primitiveType
+    | arrayType ;
+
+primitiveType
+    -> "number"
+    | "string"
+    | "bool" ;
+
+arrayType
+    -> primitiveType "[]" ;
+
+ifStatement
+    -> "if"
+       "(" expression ")"
+       statement
+       ( "else" statement )? ;
+
+loopStatement
+    -> "loop"
+       ( "(" expression ")" )?
+       statement ;
+
+returnStatement
+    -> "return"
+       expression?
+       ";" ;
+
+printStatement
+    -> ( "out" | "outln" )
+       expression
+       ";" ;
+
+expressionStatement
+    -> expression ";" ;
+
+expression
+    -> assignment ;
+
+assignment
+    -> postfix "=" assignment
+    | logicOr ;
+
+logicOr
+    -> logicAnd
+       ( "or" logicAnd )* ;
+
+logicAnd
+    -> equality
+       ( "and" equality )* ;
+
+equality
+    -> comparison
+       ( ( "==" | "!=" ) comparison )* ;
+
+comparison
+    -> term
+       ( ( ">" | ">=" | "<" | "<=" ) term )* ;
+
+term
+    -> factor
+       ( ( "+" | "-" ) factor )* ;
+
+factor
+    -> unary
+       ( ( "*" | "/" ) unary )* ;
+
+unary
+    -> ( "!" | "-" | "typeof" ) unary
+    | postfix ;
+
+postfix
+    -> primary
+       ( "[" expression "]"
+       | "(" arguments? ")" )* ;
+
+arguments
+    -> expression
+       ( "," expression )* ;
+
+primary
+    -> NUMBER
+    | STRING
+    | TRUE
+    | FALSE
+    | IDENTIFIER
+    | array
+    | "(" expression ")" ;
+
+array
+    -> "["
+       ( expression ( "," expression )* )?
+       "]" ;
