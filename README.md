@@ -1,11 +1,12 @@
-# Interpreter In C++
-This is a little project ive taken upon myself to create an interpreter from scratch, no proper guidance and in C++. Isn't this fun..
+# Interpreter In C++ 
+This is a little project ive taken upon myself to create an interpreter from scratch, no proper guidance and in C++. 
 
 ## Main Goals
+- Make a strongly typed language that is powerful, gives control but is still simple to use.
 - Make a semi-decent language that at least includes, apart from the basics, functions and classes/objects.
 - Learn proper C++ techniques and evolve my understanding of the language.
 - Heavy focus on error handling - show informative errors that actually help the user (i love rust errors; we'll see how close we can get).
-- Enforce types within the language for variables (int, float, string, etc.).
+- Enforce strict typing within the language.
 
 ## Project Setup
 - C++ Version: 23
@@ -14,9 +15,9 @@ This is a little project ive taken upon myself to create an interpreter from scr
 
 ## Language Features
 
-#### Semicolon ending
+### Semicolon ending
 
-Statements and expressions must end in a semicolon. For example `out 10;` must end on a semicolon. This is also true for: printing, varaible declarations, variable modification, stand alone expression statements.
+Statements and expressions must end in a semicolon. For example `out 10;` must end on a semicolon. Similar to languages like C/C++. 
 
 ### Operators
 
@@ -53,6 +54,9 @@ All of the following operators are implemented inside of the language.
 * `bool` - Boolean values.
 * `string` - String values.
 * `number` - Number values (integer and floating point).
+* `void` - Currently only allowed for return type of a function to specify a function doesn't return anything.
+
+> Each type (except void) can be appended with `[]` to signal its an array type. For example: `number[]` is an array of numbers.
 
 #### Logic
 
@@ -76,3 +80,7 @@ All of the following operators are implemented inside of the language.
 
 * `func` - Defines a function. An example of a function is as follows: `func foo(x -> number) -> number {...}`. Functions must explicitly define parameter types and a return type, even if the function doesn't return anything, it should still be marked with ` -> void {..`. 
 * `return` - Returns a value from the function.
+
+#### Typeof keyword
+
+* `typeof` - Returns a string value of the type in the following expression. For example: `out typeof 10;` would print "number".
