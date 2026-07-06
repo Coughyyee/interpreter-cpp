@@ -7,99 +7,92 @@
 
 /* Expressions */
 
+/**
+ * @brief Parent class for all Exprs. Each expression must implement a Token. Token should be a keyword or anything that
+ * identifies the statement for error handling.
+ */
 struct Expr
 {
+    Token token;
+    explicit Expr(Token token) : token(std::move(token)) {}
+
     virtual ~Expr() = default;
 };
 
 struct LiteralExpr : Expr
 {
-    Token value;
-
-    LiteralExpr(Token value) : value(std::move(value)) {}
+    LiteralExpr(Token value) : Expr(value) {}
 };
 
 struct BinaryExpr : Expr
 {
     std::unique_ptr<Expr> left;
-    Token op;
     std::unique_ptr<Expr> right;
 
     BinaryExpr(std::unique_ptr<Expr> left, Token op, std::unique_ptr<Expr> right)
-        : left(std::move(left)), op(std::move(op)), right(std::move(right))
+        : Expr(op), left(std::move(left)), right(std::move(right))
     {
     }
 };
 
 struct VariableExpr : Expr
 {
-    Token name;
-
-    VariableExpr(Token name) : name(std::move(name)) {}
+    VariableExpr(Token name) : Expr(name) {}
 };
 
 struct LogicalExpr : Expr
 {
     std::unique_ptr<Expr> left;
-    Token op;
     std::unique_ptr<Expr> right;
 
     LogicalExpr(std::unique_ptr<Expr> left, Token op, std::unique_ptr<Expr> right)
-        : left(std::move(left)), op(std::move(op)), right(std::move(right))
+        : Expr(op), left(std::move(left)), right(std::move(right))
     {
     }
 };
 
 struct UnaryExpr : Expr
 {
-    Token op;
     std::unique_ptr<Expr> expr;
 
-    UnaryExpr(Token op, std::unique_ptr<Expr> expr) : op(std::move(op)), expr(std::move(expr)) {}
+    UnaryExpr(Token op, std::unique_ptr<Expr> expr) : Expr(op), expr(std::move(expr)) {}
 };
 
 struct GroupingExpr : Expr
 {
     std::unique_ptr<Expr> expr;
 
-    GroupingExpr(std::unique_ptr<Expr> expr) : expr(std::move(expr)) {}
+    GroupingExpr(Token token, std::unique_ptr<Expr> expr) : Expr(token), expr(std::move(expr)) {}
 };
 
 struct AssignmentExpr : Expr
 {
-    Token name;
     std::unique_ptr<Expr> value;
 
-    AssignmentExpr(Token name, std::unique_ptr<Expr> value) : name(std::move(name)), value(std::move(value)) {}
+    AssignmentExpr(Token name, std::unique_ptr<Expr> value) : Expr(name), value(std::move(value)) {}
 };
 
 struct TypeOfExpr : Expr
 {
-    Token token;
     std::unique_ptr<Expr> expr;
 
-    TypeOfExpr(Token token, std::unique_ptr<Expr> expr) : token(std::move(token)), expr(std::move(expr)) {}
+    TypeOfExpr(Token token, std::unique_ptr<Expr> expr) : Expr(token), expr(std::move(expr)) {}
 };
 
 struct ArrayExpr : Expr
 {
-    Token token;
     std::vector<std::unique_ptr<Expr>> elements;
 
-    ArrayExpr(Token token, std::vector<std::unique_ptr<Expr>> elements)
-        : token(std::move(token)), elements(std::move(elements))
-    {
-    }
+    ArrayExpr(Token token, std::vector<std::unique_ptr<Expr>> elements) : Expr(token), elements(std::move(elements)) {}
 };
 
 struct IndexExpr : Expr
 {
-    Token token;
     std::unique_ptr<Expr> target;
     std::unique_ptr<Expr> index;
 
     IndexExpr(Token token, std::unique_ptr<Expr> target, std::unique_ptr<Expr> index)
-        : token(std::move(token)), target(std::move(target)), index(std::move(index))
+        : Expr(token), target(std::move(target)), index(std::move(index))
     {
     }
 };
@@ -107,11 +100,10 @@ struct IndexExpr : Expr
 struct CallExpr : Expr
 {
     std::unique_ptr<Expr> callee;
-    Token paren;
     std::vector<std::unique_ptr<Expr>> arguments;
 
     CallExpr(std::unique_ptr<Expr> callee, Token paren, std::vector<std::unique_ptr<Expr>> arguments)
-        : callee(std::move(callee)), paren(std::move(paren)), arguments(std::move(arguments))
+        : Expr(paren), callee(std::move(callee)), arguments(std::move(arguments))
     {
     }
 };

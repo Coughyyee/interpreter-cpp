@@ -4,16 +4,11 @@
 #include <iostream>
 #include <print>
 
-#include "utils/Logger.hpp"
-
-// import Lexer;
-#include "lexer/Lexer.hpp"
-// import Parser;
-#include "parser/Parser.hpp"
-// import AstPrinter;
-#include "utils/AstPrinter.hpp"
-// import Interpreter;
 #include "interpreter/Interpreter.hpp"
+#include "lexer/Lexer.hpp"
+#include "parser/Parser.hpp"
+#include "utils/AstPrinter.hpp"
+#include "utils/Logger.hpp"
 
 namespace
 {

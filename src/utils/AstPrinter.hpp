@@ -78,17 +78,17 @@ class AstPrinter
 
     std::string visit(const LiteralExpr* expr)
     {
-        return expr->value.lexeme;
+        return expr->token.lexeme;
     }
 
     std::string visit(const BinaryExpr* expr)
     {
-        return std::format("({} {} {})", expr->op.lexeme, print(expr->left.get()), print(expr->right.get()));
+        return std::format("({} {} {})", expr->token.lexeme, print(expr->left.get()), print(expr->right.get()));
     }
 
     std::string visit(const UnaryExpr* expr)
     {
-        return std::format("({} {})", expr->op.lexeme, print(expr->expr.get()));
+        return std::format("({} {})", expr->token.lexeme, print(expr->expr.get()));
     }
 
     std::string visit(const GroupingExpr* expr)
@@ -98,11 +98,11 @@ class AstPrinter
 
     std::string visit(const VariableExpr* expr)
     {
-        return expr->name.lexeme;
+        return expr->token.lexeme;
     }
 
     std::string visit(const AssignmentExpr* expr)
     {
-        return std::format("(= {} {})", expr->name.lexeme, print(expr->value.get()));
+        return std::format("(= {} {})", expr->token.lexeme, print(expr->value.get()));
     }
 };

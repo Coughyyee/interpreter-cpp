@@ -202,7 +202,7 @@ void Interpreter::execute_print(const PrintStmt* stmt)
     // Error
     else
     {
-        throw RuntimeException(ErrorCode::UNKNOWN, "Unknown type.", stmt->keyword);
+        throw RuntimeException(ErrorCode::UNKNOWN, "Unknown type.", stmt->token);
     }
 }
 void Interpreter::execute_variable_declaration(const VariableDeclarationStmt* stmt)
@@ -231,14 +231,14 @@ void Interpreter::execute_variable_declaration(const VariableDeclarationStmt* st
                 std::format(
                     "Expression returned incorrect data type(s). Expected array to contain values of '{}' type.",
                     stmt->declared_type.lexeme),
-                stmt->keyword);
+                stmt->token);
         }
 
         // general error
         throw RuntimeException(
             ErrorCode::TYPE_MISMATCH,
             std::format("Expression returned incorrect data type. Expected '{}' type.", stmt->declared_type.lexeme),
-            stmt->keyword);
+            stmt->token);
     }
 
     // creates the variable
@@ -328,26 +328,26 @@ void Interpreter::execute_return(const ReturnStmt* stmt)
 #pragma region evaluation
 Value Interpreter::evaluate_literal(const LiteralExpr* expr)
 {
-    switch (expr->value.type)
+    switch (expr->token.type)
     {
     case TokenType::NumberLiteral:
-        return std::stod(expr->value.lexeme);
+        return std::stod(expr->token.lexeme);
     case TokenType::StringLiteral:
-        return expr->value.lexeme;
+        return expr->token.lexeme;
     case TokenType::True:
         return true;
     case TokenType::False:
         return false;
 
     default:
-        throw RuntimeException(ErrorCode::UNKNOWN, "Unknown literal type.", expr->value);
+        throw RuntimeException(ErrorCode::UNKNOWN, "Unknown literal type.", expr->token);
     }
 }
 Value Interpreter::evaluate_logic(const LogicalExpr* expr)
 {
     Value left = evaluate(expr->left.get());
 
-    if (expr->op.type == TokenType::Or)
+    if (expr->token.type == TokenType::Or)
     {
         if (is_truthy(left))
             return left;
@@ -367,7 +367,7 @@ Value Interpreter::evaluate_binary(const BinaryExpr* expr)
 
     try
     {
-        switch (expr->op.type)
+        switch (expr->token.type)
         {
         // Equality operators
         case TokenType::EqualEqual:
@@ -400,7 +400,7 @@ Value Interpreter::evaluate_binary(const BinaryExpr* expr)
 
             throw RuntimeException(ErrorCode::INVALID_OPERANDS,
                                    "Invalid operands for '+'. Both operands must be either numbers or strings.",
-                                   expr->op);
+                                   expr->token);
         }
         case TokenType::Minus:
             return as_number(left) - as_number(right);
@@ -411,12 +411,12 @@ Value Interpreter::evaluate_binary(const BinaryExpr* expr)
             if (as_number(left) == 0 || as_number(right) == 0)
             {
                 // TODO: pass left or right depending on which ones 0
-                throw RuntimeException(ErrorCode::DIVISION_BY_0, "Division by 0 is forbidden.", expr->op);
+                throw RuntimeException(ErrorCode::DIVISION_BY_0, "Division by 0 is forbidden.", expr->token);
             }
             return as_number(left) / as_number(right);
 
         default:
-            throw RuntimeException(ErrorCode::UNKNOWN, "Unkown binary operator.", expr->op);
+            throw RuntimeException(ErrorCode::UNKNOWN, "Unkown binary operator.", expr->token);
         }
     }
     catch (const std::logic_error& err)
@@ -424,14 +424,14 @@ Value Interpreter::evaluate_binary(const BinaryExpr* expr)
         // thrown from as_number().
 
         // re-throw with custom error class
-        throw RuntimeException(ErrorCode::TYPE_MISMATCH, err.what(), expr->op);
+        throw RuntimeException(ErrorCode::TYPE_MISMATCH, err.what(), expr->token);
     }
 }
 Value Interpreter::evaluate_unary(const UnaryExpr* expr)
 {
     Value value = evaluate(expr->expr.get());
 
-    switch (expr->op.type)
+    switch (expr->token.type)
     {
     case TokenType::Minus:
     {
@@ -439,7 +439,7 @@ Value Interpreter::evaluate_unary(const UnaryExpr* expr)
         if (!std::holds_alternative<double>(value))
         {
             throw RuntimeException(ErrorCode::INVALID_OPERAND, "Invalid operand for '-'. Operand must be a number.",
-                                   expr->op);
+                                   expr->token);
         }
 
         return -std::get<double>(value);
@@ -450,7 +450,7 @@ Value Interpreter::evaluate_unary(const UnaryExpr* expr)
         return !is_truthy(value);
 
     default:
-        throw RuntimeException(ErrorCode::UNKNOWN, "Unkown unary operator.", expr->op);
+        throw RuntimeException(ErrorCode::UNKNOWN, "Unkown unary operator.", expr->token);
     }
 }
 Value Interpreter::evaluate_type_of(const TypeOfExpr* expr)
@@ -491,20 +491,20 @@ Value Interpreter::evaluate_group(const GroupingExpr* expr)
 }
 Value Interpreter::evaluate_variable(const VariableExpr* expr)
 {
-    return lookup_variable(expr->name.lexeme, expr->name).value;
+    return lookup_variable(expr->token.lexeme, expr->token).value;
 }
 Value Interpreter::evaluate_assignment(const AssignmentExpr* expr)
 {
     Value value = evaluate(expr->value.get());
 
-    auto& variable = lookup_variable(expr->name.lexeme, expr->name);
+    auto& variable = lookup_variable(expr->token.lexeme, expr->token);
 
     if (!type_matches(value, variable.declared_type))
     {
         throw RuntimeException(ErrorCode::TYPE_MISMATCH,
                                std::format("Expression returned mismatched data type. Expected '{}' return type.",
                                            variable.get_type_name()),
-                               expr->name);
+                               expr->token);
     }
 
     variable.value = value;
@@ -595,11 +595,11 @@ Value Interpreter::evaluate_call(const CallExpr* expr)
     // Evaluate the callee - should be a variable pointing to a function
     if (auto variable = dynamic_cast<const VariableExpr*>(expr->callee.get()))
     {
-        auto it = _functions.find(variable->name.lexeme);
+        auto it = _functions.find(variable->token.lexeme);
         if (it == _functions.end())
         {
             throw RuntimeException(ErrorCode::UNDEFINED_VARIABLE,
-                                   std::format("Undefined function '{}'.", variable->name.lexeme), expr->paren);
+                                   std::format("Undefined function '{}'.", variable->token.lexeme), expr->token);
         }
 
         // Evaluate all arguments
@@ -610,10 +610,10 @@ Value Interpreter::evaluate_call(const CallExpr* expr)
         }
 
         // Call the function
-        return call_function(it->second, arg_values, expr->paren);
+        return call_function(it->second, arg_values, expr->token);
     }
 
-    throw RuntimeException(ErrorCode::INVALID_OPERAND, "Can only call functions.", expr->paren);
+    throw RuntimeException(ErrorCode::INVALID_OPERAND, "Can only call functions.", expr->token);
 }
 #pragma endregion
 

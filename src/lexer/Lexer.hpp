@@ -44,7 +44,16 @@ class Lexer
     std::expected<std::vector<Token>, Error> scan_tokens();
 
   private:
+    /**
+     * @brief Creates a number literal
+     * @return NumberLiteral token
+     */
     Token number();
+
+    /**
+     * @brief Creates an identidier
+     * @return Identifier token
+     */
     Token identifier();
 
     [[nodiscard]] char peek() const;

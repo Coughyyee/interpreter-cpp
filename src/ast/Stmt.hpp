@@ -9,8 +9,15 @@
 
 /* Statements */
 
+/**
+ * @brief Parent class for all statements. Each statement must implement a Token. Token should be a keyword or anything
+ * that identifies the statement for error handling.
+ */
 struct Stmt
 {
+    Token token;
+    explicit Stmt(Token token) : token(std::move(token)) {}
+
     virtual ~Stmt() = default;
 };
 
@@ -19,11 +26,9 @@ struct Stmt
  */
 struct ExpressionStmt : Stmt
 {
-    Token keyword;
     std::unique_ptr<Expr> expression;
 
-    ExpressionStmt(Token keyword, std::unique_ptr<Expr> expression)
-        : keyword(std::move(keyword)), expression(std::move(expression))
+    ExpressionStmt(Token keyword, std::unique_ptr<Expr> expression) : Stmt(keyword), expression(std::move(expression))
     {
     }
 };
@@ -33,12 +38,11 @@ struct ExpressionStmt : Stmt
  */
 struct PrintStmt : Stmt
 {
-    Token keyword;
     std::unique_ptr<Expr> expression;
     bool new_line; // true -> appends new line char to output.
 
     PrintStmt(Token keyword, std::unique_ptr<Expr> expression, bool new_line)
-        : keyword(std::move(keyword)), expression(std::move(expression)), new_line(new_line)
+        : Stmt(keyword), expression(std::move(expression)), new_line(new_line)
     {
     }
 };
@@ -48,13 +52,12 @@ struct PrintStmt : Stmt
  */
 struct VariableDeclarationStmt : Stmt
 {
-    Token keyword;
     Token name;
     Token declared_type;
     std::unique_ptr<Expr> expression;
 
     VariableDeclarationStmt(Token keyword, Token name, Token declared_type, std::unique_ptr<Expr> expression)
-        : keyword(std::move(keyword)), name(std::move(name)), declared_type(std::move(declared_type)),
+        : Stmt(keyword), name(std::move(name)), declared_type(std::move(declared_type)),
           expression(std::move(expression))
     {
     }
@@ -67,7 +70,10 @@ struct BlockStmt : Stmt
 {
     std::vector<std::unique_ptr<Stmt>> statements;
 
-    BlockStmt(std::vector<std::unique_ptr<Stmt>> statements) : statements(std::move(statements)) {}
+    BlockStmt(Token token, std::vector<std::unique_ptr<Stmt>> statements)
+        : Stmt(token), statements(std::move(statements))
+    {
+    }
 };
 
 /**
@@ -75,13 +81,12 @@ struct BlockStmt : Stmt
  */
 struct LoopStmt : Stmt
 {
-    Token keyword;
     // if true then condition else infinite loop
     std::optional<std::unique_ptr<Expr>> condition;
     std::unique_ptr<Stmt> block;
 
     LoopStmt(Token keyword, std::optional<std::unique_ptr<Expr>> condition, std::unique_ptr<Stmt> block)
-        : keyword(std::move(keyword)), condition(std::move(condition)), block(std::move(block))
+        : Stmt(keyword), condition(std::move(condition)), block(std::move(block))
     {
     }
 };
@@ -91,14 +96,13 @@ struct LoopStmt : Stmt
  */
 struct IfStmt : Stmt
 {
-    Token keyword;
     std::unique_ptr<Expr> condition;
     std::unique_ptr<Stmt> then_branch;
     std::optional<std::unique_ptr<Stmt>> else_branch;
 
     IfStmt(Token keyword, std::unique_ptr<Expr> condition, std::unique_ptr<Stmt> then_branch,
            std::optional<std::unique_ptr<Stmt>> else_branch)
-        : keyword(std::move(keyword)), condition(std::move(condition)), then_branch(std::move(then_branch)),
+        : Stmt(keyword), condition(std::move(condition)), then_branch(std::move(then_branch)),
           else_branch(std::move(else_branch))
     {
     }
@@ -120,7 +124,6 @@ struct Parameter
  */
 struct FunctionDeclarationStmt : Stmt
 {
-    Token keyword;
     Token name;
     std::vector<Parameter> parameters;
     Token return_type;
@@ -128,8 +131,8 @@ struct FunctionDeclarationStmt : Stmt
 
     FunctionDeclarationStmt(Token keyword, Token name, std::vector<Parameter> parameters, Token return_type,
                             std::unique_ptr<BlockStmt> block)
-        : keyword(std::move(keyword)), name(std::move(name)), parameters(std::move(parameters)),
-          return_type(std::move(return_type)), block(std::move(block))
+        : Stmt(keyword), name(std::move(name)), parameters(std::move(parameters)), return_type(std::move(return_type)),
+          block(std::move(block))
     {
     }
 };
@@ -139,7 +142,6 @@ struct FunctionDeclarationStmt : Stmt
  */
 struct ReturnStmt : Stmt
 {
-    Token keyword;
     std::unique_ptr<Expr> value;
-    ReturnStmt(Token keyword, std::unique_ptr<Expr> value) : keyword(std::move(keyword)), value(std::move(value)) {}
+    ReturnStmt(Token keyword, std::unique_ptr<Expr> value) : Stmt(keyword), value(std::move(value)) {}
 };

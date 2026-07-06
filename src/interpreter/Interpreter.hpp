@@ -24,6 +24,11 @@ class Interpreter
     std::optional<Value> _return_value;
 
   public:
+    /**
+     * @brief ctor - creates initial global scope in _scopes
+     *
+     * @param source reference to source file
+     */
     explicit Interpreter(const std::string& source) : _source(source)
     {
         _scopes.emplace_back();
@@ -32,7 +37,20 @@ class Interpreter
     std::expected<void, Error> interpret(const Stmt* stmt);
 
   private:
+    /**
+     * @brief Executes statements
+     * @param stmt Passed in stmt to get executed
+     */
     void execute(const Stmt* stmt);
+
+    /**
+     * @brief Evaluate an expression and return a Value
+     * @param expr Expression to be evaluated
+     * @return Value returned from expression evaluation
+     * @throws RuntimeException - Provide proper run time errors
+     * @throws std::runtime_error - typically thrown when error is UNKNOWN (aka an internal error) - could change in
+     * future.
+     */
     Value evaluate(const Expr* expr);
 
 #pragma region execution

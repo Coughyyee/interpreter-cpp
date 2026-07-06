@@ -282,6 +282,8 @@ std::unique_ptr<Stmt> Parser::expression_statement()
 
 std::unique_ptr<Stmt> Parser::block_statement()
 {
+    Token brace = previous();
+
     std::vector<std::unique_ptr<Stmt>> statements;
 
     while (!check(TokenType::RightBrace) && !is_at_end())
@@ -291,7 +293,7 @@ std::unique_ptr<Stmt> Parser::block_statement()
 
     consume(TokenType::RightBrace, ErrorCode::EXPECTED, "Expected '}' after block.");
 
-    return std::make_unique<BlockStmt>(std::move(statements));
+    return std::make_unique<BlockStmt>(brace, std::move(statements));
 }
 
 std::unique_ptr<Expr> Parser::expression()
@@ -301,6 +303,8 @@ std::unique_ptr<Expr> Parser::expression()
 
 std::unique_ptr<Expr> Parser::assignment()
 {
+    Token start = peek();
+
     auto expr = or_expression();
 
     if (match(TokenType::Equal))
@@ -309,7 +313,7 @@ std::unique_ptr<Expr> Parser::assignment()
 
         if (auto variable = dynamic_cast<VariableExpr*>(expr.get()))
         {
-            return std::make_unique<AssignmentExpr>(variable->name, std::move(value));
+            return std::make_unique<AssignmentExpr>(variable->token, std::move(value));
         }
 
         throw ParserException(ErrorCode::INVALID_ASSIGNMENT, "Invalid assignment target.");
@@ -515,7 +519,7 @@ std::unique_ptr<Expr> Parser::primary()
 
         consume(TokenType::RightParen, ErrorCode::EXPECTED, "Expected ')' after expression.");
 
-        return std::make_unique<GroupingExpr>(std::move(expr));
+        return std::make_unique<GroupingExpr>(expr->token, std::move(expr));
     }
 
     if (match(TokenType::LeftBracket))
