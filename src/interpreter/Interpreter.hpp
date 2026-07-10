@@ -56,6 +56,7 @@ class Interpreter
 #pragma region execution
     void execute_print(const PrintStmt* stmt);
     void execute_variable_declaration(const VariableDeclarationStmt* stmt);
+    void execute_object_declaration(const ObjectDeclarationStmt* stmt);
     void execute_expression(const ExpressionStmt* stmt);
     void execute_block(const BlockStmt* stmt);
     void execute_if(const IfStmt* stmt);

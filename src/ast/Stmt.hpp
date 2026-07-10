@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "ast/Expr.hpp"
+#include "ast/Types.hpp"
 #include "types/Token.hpp"
 
 /* Statements */
@@ -109,12 +110,6 @@ struct IfStmt : Stmt
 };
 
 /* Functions */
-struct Parameter
-{
-    Token name;
-    Token type;
-};
-
 /**
  * @brief Manages function declarations `func x(<params...>) -> <return-type> {...}`
  *
@@ -125,11 +120,11 @@ struct Parameter
 struct FunctionDeclarationStmt : Stmt
 {
     Token name;
-    std::vector<Parameter> parameters;
+    std::vector<FunctionParameter> parameters;
     Token return_type;
     std::unique_ptr<BlockStmt> block; // expects a blockstmt
 
-    FunctionDeclarationStmt(Token keyword, Token name, std::vector<Parameter> parameters, Token return_type,
+    FunctionDeclarationStmt(Token keyword, Token name, std::vector<FunctionParameter> parameters, Token return_type,
                             std::unique_ptr<BlockStmt> block)
         : Stmt(keyword), name(std::move(name)), parameters(std::move(parameters)), return_type(std::move(return_type)),
           block(std::move(block))
@@ -144,4 +139,18 @@ struct ReturnStmt : Stmt
 {
     std::unique_ptr<Expr> value;
     ReturnStmt(Token keyword, std::unique_ptr<Expr> value) : Stmt(keyword), value(std::move(value)) {}
+};
+
+/**
+ * @brief Manages object structures
+ */
+struct ObjectDeclarationStmt : Stmt
+{
+    Token name;
+    std::vector<ObjectProperty> properties;
+
+    ObjectDeclarationStmt(Token keyword, Token name, std::vector<ObjectProperty> properties)
+        : Stmt(keyword), name(std::move(name)), properties(std::move(properties))
+    {
+    }
 };

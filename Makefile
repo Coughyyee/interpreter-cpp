@@ -1,7 +1,7 @@
 .PHONY: configure build run clean rebuild
 
 BUILD_DIR := build
-ARGS := input.txt
+ARGS := ./inputs/input.txt
 
 configure:
 	cmake -S . -B $(BUILD_DIR) -G Ninja -DCMAKE_CXX_COMPILER=clang++

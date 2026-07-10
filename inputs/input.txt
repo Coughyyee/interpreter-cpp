@@ -1,0 +1,11 @@
+// This file's path is added as a cli argument therefore code within here executes.
+
+object Foo {
+    x -> number = 10;
+    y -> string = "Hello world";
+}
+
+outln Foo;
+
+var p -> number[] = [2,2,3,4];
+outln p;

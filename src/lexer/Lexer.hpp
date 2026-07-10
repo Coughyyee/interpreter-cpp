@@ -36,6 +36,8 @@ class Lexer
         {"func", TokenType::Func},     {"return", TokenType::Return},
 
         {"typeof", TokenType::Typeof},
+
+        {"object", TokenType::Object},
     };
 
   public:

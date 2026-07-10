@@ -1,6 +1,10 @@
 #include "parser/Parser.hpp"
 
+#include "ast/Stmt.hpp"
+#include "ast/Types.hpp"
+#include "types/Error.hpp"
 #include "types/Exceptions.hpp"
+#include "types/Token.hpp"
 #include "utils/SourceUtils.hpp"
 #include <format>
 
@@ -66,6 +70,11 @@ std::unique_ptr<Stmt> Parser::statement()
         return return_statement();
     }
 
+    if (match(TokenType::Object))
+    {
+        return object_declaration_statement();
+    }
+
     return expression_statement();
 }
 
@@ -126,6 +135,73 @@ std::unique_ptr<Stmt> Parser::return_statement()
     return std::make_unique<ReturnStmt>(keyword, std::move(value));
 }
 
+std::unique_ptr<Stmt> Parser::object_declaration_statement()
+{
+    Token keyword = previous();
+    Token name = consume(TokenType::Identifier, ErrorCode::EXPECTED, "Expected object name.");
+    consume(TokenType::LeftBrace, ErrorCode::EXPECTED, "Expected '{' after object name.");
+
+    std::vector<ObjectProperty> props;
+    while (!check(TokenType::RightBrace) && !is_at_end())
+    {
+        Token prop_name = consume(TokenType::Identifier, ErrorCode::EXPECTED, "Expected property identifier name.");
+        consume(TokenType::Arrow, ErrorCode::EXPECTED, "Expected '->' after property name.");
+        Token declared_type = consume(
+            {
+                TokenType::Bool,
+                TokenType::Number,
+                TokenType::String,
+            },
+            ErrorCode::EXPECTED, "Expected valid type name.");
+
+        // check if type is followed by [] to specify an array type
+        bool is_array = false;
+        if (peek().type == TokenType::LeftBracket)
+        {
+            advance(); // consume left bracket
+            consume(   // consume right bracket
+                TokenType::RightBracket, ErrorCode::EXPECTED, "Expected ']' after '[' in type definition.");
+            is_array = true;
+        }
+
+        consume(TokenType::Equal, ErrorCode::EXPECTED, "Expected '=' after type.");
+        auto expr = expression();
+        consume(TokenType::Semicolon, ErrorCode::EXPECTED, "Expected ';' after expression.");
+
+        // if is array, update the declared_type variable to array type
+        if (is_array)
+        {
+            switch (declared_type.type)
+            {
+            case TokenType::Number:
+                declared_type.type = TokenType::NumberArray;
+                break;
+
+            case TokenType::String:
+                declared_type.type = TokenType::StringArray;
+                break;
+
+            case TokenType::Bool:
+                declared_type.type = TokenType::BoolArray;
+                break;
+            default:
+                // TODO: Implement sort of error handling
+                break;
+            }
+        }
+
+        // Create object property and append to props vector
+        ObjectProperty prop{.name = prop_name, .declared_type = declared_type, .value = std::move(expr)};
+
+        props.push_back(std::move(prop));
+    }
+
+    // end of object
+    consume(TokenType::RightBrace, ErrorCode::EXPECTED, "Expected '}' after block.");
+
+    return std::make_unique<ObjectDeclarationStmt>(keyword, name, std::move(props));
+}
+
 std::unique_ptr<Stmt> Parser::function_declaration_statement()
 {
     Token keyword = previous();
@@ -133,7 +209,7 @@ std::unique_ptr<Stmt> Parser::function_declaration_statement()
 
     consume(TokenType::LeftParen, ErrorCode::EXPECTED, "Expected '(' after function name.");
 
-    std::vector<Parameter> parameters{};
+    std::vector<FunctionParameter> parameters{};
 
     // parameter list
     while (!check(TokenType::RightParen) && !is_at_end())
@@ -158,7 +234,7 @@ std::unique_ptr<Stmt> Parser::function_declaration_statement()
             }
         }
 
-        parameters.push_back(Parameter{std::move(param_name), std::move(param_type)});
+        parameters.push_back(FunctionParameter{std::move(param_name), std::move(param_type)});
 
         if (!match(TokenType::Comma))
         {

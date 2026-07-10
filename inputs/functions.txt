@@ -19,6 +19,6 @@ foo();
 add(1, 2);
 outln r(20);
 
-var a -> string[] = [1,2,3];
+var a -> string[] = [1,2,3]; // errornous
 
 outln typeof a;

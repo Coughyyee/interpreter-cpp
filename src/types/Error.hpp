@@ -1,9 +1,10 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 
 // Interpreter stages for error reporting.
-enum StageCode
+enum StageCode : std::uint8_t
 {
     // TODO: implement
     READING_SOURCE = 0, // A
@@ -13,7 +14,7 @@ enum StageCode
 };
 
 // Error codes for different error types.
-enum ErrorCode
+enum ErrorCode : std::uint8_t
 {
     UNKNOWN = 0,
 

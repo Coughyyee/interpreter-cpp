@@ -17,7 +17,12 @@ program
 declaration
     -> functionDeclaration
     | variableDeclaration
+    | objectDeclaration
     | statement ;
+
+objectDeclaration -> "object" IDENTIFIER "{" objectProperty* "}" ;
+
+objectProperty -> IDENTIFIER "->" type "=" expression ";" ;
 
 statement
     -> blockStatement

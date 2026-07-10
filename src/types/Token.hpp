@@ -2,79 +2,83 @@
 
 #include <string>
 
-enum class TokenType {
-	NumberLiteral,
-	StringLiteral,
-	Identifier,
+enum class TokenType
+{
+    NumberLiteral,
+    StringLiteral,
+    Identifier,
 
-	// arrays
-	NumberArray,
-	StringArray,
-	BoolArray,
+    // arrays
+    NumberArray,
+    StringArray,
+    BoolArray,
 
-	Equal,
+    Equal,
 
-	Bang,
-	BangEqual,
-	EqualEqual,
-	MoreThan,
-	MoreThanEqual,
-	LessThan,
-	LessThanEqual,
+    Bang,
+    BangEqual,
+    EqualEqual,
+    MoreThan,
+    MoreThanEqual,
+    LessThan,
+    LessThanEqual,
 
-	Plus,
-	Minus,
-	Multiply,
-	Divide,
+    Plus,
+    Minus,
+    Multiply,
+    Divide,
 
-	LeftParen,
-	RightParen,
-	LeftBrace,
-	RightBrace,
-	LeftBracket,
-	RightBracket,
+    LeftParen,
+    RightParen,
+    LeftBrace,
+    RightBrace,
+    LeftBracket,
+    RightBracket,
 
-	// customer operators
-	Arrow,
+    // customer operators
+    Arrow,
 
-	// Keywords
-	// Keyword lexeme map found in Lexer.ixx
-	// Types
-	Bool,
-	Number,
-	String,
-	Void, // Functions only atm
+    // Keywords
+    // Keyword lexeme map found in Lexer.ixx
+    // Types
+    Bool,
+    Number,
+    String,
+    Void, // Functions only atm
 
-	Out, // print
-	Outln, // println
-	Var,
-	True,
-	False,
+    Out,   // print
+    Outln, // println
+    Var,
+    True,
+    False,
 
-	And,
-	Or,
+    And,
+    Or,
 
-	Loop,
-	If,
-	Else,
+    Loop,
+    If,
+    Else,
 
-	Typeof,
+    Typeof,
 
-	Func,
-	Return,
+    Func,
+    Return,
 
-	// Keywords End
+    Object,
 
-	Semicolon,
-	Comma,
+    // Keywords End
 
-	Eof
+    Semicolon,
+    Comma,
+
+    Eof
 };
 
-struct Token {
-	TokenType type;
-	std::string lexeme;
+struct Token
+{
+    TokenType type;
+    std::string lexeme;
 
-	size_t line;
-	size_t column;
+    size_t line;
+    size_t column;
 };

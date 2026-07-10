@@ -33,6 +33,7 @@ class Parser
     std::unique_ptr<Stmt> loop_statement();
     std::unique_ptr<Stmt> if_statement();
     std::unique_ptr<Stmt> return_statement();
+    std::unique_ptr<Stmt> object_declaration_statement();
     std::unique_ptr<Stmt> function_declaration_statement();
     std::unique_ptr<Stmt> variable_declaration_statement();
     std::unique_ptr<Stmt> print_statement();

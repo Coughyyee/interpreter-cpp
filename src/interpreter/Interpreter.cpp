@@ -1,9 +1,13 @@
 #include "interpreter/Interpreter.hpp"
 
 #include "types/Exceptions.hpp"
+#include "types/Value.hpp"
 #include "utils/SourceUtils.hpp"
 #include <print>
 #include <stdexcept>
+#include <string>
+#include <unordered_map>
+#include <variant>
 
 std::expected<void, Error> Interpreter::interpret(const Stmt* stmt)
 {
@@ -79,6 +83,11 @@ void Interpreter::execute(const Stmt* stmt)
         return execute_return(return_stmt);
     }
 
+    if (auto obj_decl_stmt = dynamic_cast<const ObjectDeclarationStmt*>(stmt))
+    {
+        return execute_object_declaration(obj_decl_stmt);
+    }
+
     // Todo: come back to
     throw std::runtime_error{"Unknown statement type."};
 }
@@ -150,6 +159,8 @@ void Interpreter::execute_print(const PrintStmt* stmt)
     Value value = evaluate(stmt->expression.get());
     bool new_line = stmt->new_line;
 
+    // TODO:  extract value to struct with a get_value_to_string() function?
+    // Or just extract code.
     if (std::holds_alternative<double>(value))
     {
         new_line ? std::println("{}", std::get<double>(value)) : std::print("{}", std::get<double>(value));
@@ -166,34 +177,71 @@ void Interpreter::execute_print(const PrintStmt* stmt)
     else if (std::holds_alternative<std::shared_ptr<ArrayValue>>(value))
     {
         auto array = std::get<std::shared_ptr<ArrayValue>>(value);
-        std::print("[");
+        std::stringstream ss;
 
+        ss << '[';
         for (size_t i = 0; i < array->elements.size(); ++i)
         {
             const auto& element = array->elements[i];
 
             if (std::holds_alternative<double>(element))
             {
-                std::print("{}", std::get<double>(element));
+                ss << std::get<double>(element);
             }
             else if (std::holds_alternative<std::string>(element))
             {
-                std::print("{}", std::get<std::string>(element));
+                ss << std::get<std::string>(element);
             }
             else if (std::holds_alternative<bool>(element))
             {
-                std::print("{}", std::get<bool>(element));
+                ss << (std::get<bool>(element) ? "true" : "false");
             }
 
             if (i + 1 < array->elements.size())
             {
-                std::print(", ");
+                ss << ", ";
             }
         }
-
-        std::print("]");
+        ss << ']';
 
         // if outln used
+        if (new_line)
+        {
+            ss << "\n";
+        }
+
+        std::print("{}", ss.str());
+    }
+    else if (std::holds_alternative<std::shared_ptr<ObjectValue>>(value))
+    {
+        auto object = std::get<std::shared_ptr<ObjectValue>>(value);
+
+        // Foo -> { x = 10, y = "hi" }
+        std::print("{} -> {{ ", object->object_name);
+
+        std::size_t count = 0;
+        for (const auto& [name, value] : object->properties)
+        {
+            if (std::holds_alternative<std::string>(value.value))
+            {
+                // surround string with quotes
+                std::print("{} = \"{}\"", name, value.get_value_to_string());
+            }
+            else
+            {
+                std::print("{} = {}", name, value.get_value_to_string());
+            }
+
+            if (++count < object->properties.size())
+            {
+                std::print(", ");
+            }
+            else
+            {
+                std::print(" "); // single space after final prop - looks nicer
+            }
+        }
+        std::print("}}");
         if (new_line)
         {
             std::print("\n");
@@ -204,6 +252,62 @@ void Interpreter::execute_print(const PrintStmt* stmt)
     {
         throw RuntimeException(ErrorCode::UNKNOWN, "Unknown type.", stmt->token);
     }
+}
+void Interpreter::execute_object_declaration(const ObjectDeclarationStmt* stmt)
+{
+    auto& current_scope = _scopes.back();
+
+    auto it = current_scope.find(stmt->name.lexeme);
+
+    // ensure object isnt already been defined.
+    if (it != current_scope.end())
+    {
+        throw RuntimeException(ErrorCode::ALREADY_DEFINED_VARIABLE,
+                               std::format("Object already defined '{}'.", stmt->name.lexeme), stmt->name);
+    }
+
+    std::unordered_map<std::string, Variable> props{};
+
+    // loop over properties
+    for (auto& prop : stmt->properties)
+    {
+        Value value = evaluate(prop.value.get()); // evaluate prop expr
+
+        // if return value of expression doesnt match declared type
+        if (!type_matches(value, prop.declared_type.type))
+        {
+            /// Error cursor points to name of property
+
+            // if array type return slightly different error message
+            if (std::holds_alternative<std::shared_ptr<ArrayValue>>(value))
+            {
+                throw RuntimeException(
+                    ErrorCode::TYPE_MISMATCH,
+                    std::format(
+                        "Expression returned incorrect data type(s). Expected array to contain values of '{}' type.",
+                        prop.declared_type.lexeme),
+                    prop.name);
+            }
+
+            // non-array error
+            throw RuntimeException(
+                ErrorCode::TYPE_MISMATCH,
+                std::format("Expression returned incorrect data type. Expected '{}' type.", prop.declared_type.lexeme),
+                prop.name);
+        }
+
+        // valid expr returned (type matches declared type)
+        props[prop.name.lexeme] = {
+            .declared_type = prop.declared_type.type,
+            .value = value,
+        };
+    }
+
+    // creates the object in scope
+    current_scope[stmt->name.lexeme] = {
+        .declared_type = TokenType::Object,
+        .value = std::make_shared<ObjectValue>(stmt->name.lexeme, props),
+    };
 }
 void Interpreter::execute_variable_declaration(const VariableDeclarationStmt* stmt)
 {
@@ -465,6 +569,7 @@ Value Interpreter::evaluate_type_of(const TypeOfExpr* expr)
         return std::string("string");
     if (std::holds_alternative<std::shared_ptr<ArrayValue>>(value))
     {
+        // array checker
         auto array = std::get<std::shared_ptr<ArrayValue>>(value);
 
         switch (array->element_type)
@@ -482,6 +587,8 @@ Value Interpreter::evaluate_type_of(const TypeOfExpr* expr)
             return std::string("array");
         }
     }
+    if (std::holds_alternative<std::shared_ptr<ObjectValue>>(value))
+        return std::string("object");
 
     throw RuntimeException(ErrorCode::INVALID_TYPE, "Expression returns invalid type.", expr->token);
 }
