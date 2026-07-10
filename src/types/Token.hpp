@@ -1,8 +1,9 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 
-enum class TokenType
+enum class TokenType : std::uint8_t
 {
     NumberLiteral,
     StringLiteral,
