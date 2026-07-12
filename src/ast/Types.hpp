@@ -21,7 +21,7 @@ struct FunctionParameter
  * @param declared_type property type
  * @param value expression to be evaluted to return the value for the property.
  */
-struct ObjectProperty
+struct RecordProperty
 {
     Token name;
     Token declared_type;

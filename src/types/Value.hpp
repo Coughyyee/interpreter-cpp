@@ -113,7 +113,7 @@ struct Variable
             return "bool[]";
         case StringArray:
             return "string[]";
-        case Object: // ? Allowed?
+        case Record: // ? Allowed?
             return "object";
         case Void:
             return "void";

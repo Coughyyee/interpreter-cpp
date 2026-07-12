@@ -142,14 +142,14 @@ struct ReturnStmt : Stmt
 };
 
 /**
- * @brief Manages object structures
+ * @brief Manages record structures
  */
-struct ObjectDeclarationStmt : Stmt
+struct RecordDeclarationStmt : Stmt
 {
     Token name;
-    std::vector<ObjectProperty> properties;
+    std::vector<RecordProperty> properties;
 
-    ObjectDeclarationStmt(Token keyword, Token name, std::vector<ObjectProperty> properties)
+    RecordDeclarationStmt(Token keyword, Token name, std::vector<RecordProperty> properties)
         : Stmt(keyword), name(std::move(name)), properties(std::move(properties))
     {
     }

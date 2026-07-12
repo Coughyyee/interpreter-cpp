@@ -56,7 +56,7 @@ class Interpreter
 #pragma region execution
     void execute_print(const PrintStmt* stmt);
     void execute_variable_declaration(const VariableDeclarationStmt* stmt);
-    void execute_object_declaration(const ObjectDeclarationStmt* stmt);
+    void execute_object_declaration(const RecordDeclarationStmt* stmt);
     void execute_expression(const ExpressionStmt* stmt);
     void execute_block(const BlockStmt* stmt);
     void execute_if(const IfStmt* stmt);
@@ -77,6 +77,7 @@ class Interpreter
     Value evaluate_array(const ArrayExpr* expr);
     Value evaluate_index(const IndexExpr* expr);
     Value evaluate_call(const CallExpr* expr);
+    Value evaluate_member_access(const MemberAccessExpr* expr);
 #pragma endregion
 
     void begin_scope();

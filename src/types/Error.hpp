@@ -31,6 +31,8 @@ enum ErrorCode : std::uint8_t
     IS_NOT_TRUTHY,
     INDEX_OUT_OF_BOUNDS,
     INVALID_TYPE,
+    NOT_AN_OBJECT,
+    UNDEFINED_MEMBER,
 };
 
 struct Error

@@ -19,9 +19,10 @@ namespace logger
 
     void log(const Error& error)
     {
-        size_t space_length = (error.column - 1);
+        const std::size_t space_length = error.column > 0 ? (error.column - 1) : 0;
         std::string error_arrow_spaces(space_length, ' ');
         std::string line_number_spaces(std::to_string(error.line).size(), ' ');
+        // TODO: if "Unknown statement type." will just output goofy message, maybe create new overload without the line logging for this?
 
         // TODO: implement StageCode display
         std::println(stderr);

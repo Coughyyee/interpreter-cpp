@@ -70,7 +70,7 @@ std::unique_ptr<Stmt> Parser::statement()
         return return_statement();
     }
 
-    if (match(TokenType::Object))
+    if (match(TokenType::Record))
     {
         return object_declaration_statement();
     }
@@ -141,7 +141,7 @@ std::unique_ptr<Stmt> Parser::object_declaration_statement()
     Token name = consume(TokenType::Identifier, ErrorCode::EXPECTED, "Expected object name.");
     consume(TokenType::LeftBrace, ErrorCode::EXPECTED, "Expected '{' after object name.");
 
-    std::vector<ObjectProperty> props;
+    std::vector<RecordProperty> props;
     while (!check(TokenType::RightBrace) && !is_at_end())
     {
         Token prop_name = consume(TokenType::Identifier, ErrorCode::EXPECTED, "Expected property identifier name.");
@@ -191,7 +191,7 @@ std::unique_ptr<Stmt> Parser::object_declaration_statement()
         }
 
         // Create object property and append to props vector
-        ObjectProperty prop{.name = prop_name, .declared_type = declared_type, .value = std::move(expr)};
+        RecordProperty prop{.name = prop_name, .declared_type = declared_type, .value = std::move(expr)};
 
         props.push_back(std::move(prop));
     }
@@ -199,7 +199,7 @@ std::unique_ptr<Stmt> Parser::object_declaration_statement()
     // end of object
     consume(TokenType::RightBrace, ErrorCode::EXPECTED, "Expected '}' after block.");
 
-    return std::make_unique<ObjectDeclarationStmt>(keyword, name, std::move(props));
+    return std::make_unique<RecordDeclarationStmt>(keyword, name, std::move(props));
 }
 
 std::unique_ptr<Stmt> Parser::function_declaration_statement()
@@ -524,10 +524,8 @@ std::unique_ptr<Expr> Parser::postfix()
         if (match(TokenType::LeftBracket))
         {
             auto index_expr = expression();
-
             consume(TokenType::RightBracket, ErrorCode::EXPECTED, "Expected ']' after index expression.");
-
-            expr = std::make_unique<IndexExpr>(std::move(previous()), // token for postfix
+            expr = std::make_unique<IndexExpr>(previous(), // token for postfix
                                                std::move(expr), std::move(index_expr));
         }
         else if (match(TokenType::LeftParen))
@@ -547,6 +545,12 @@ std::unique_ptr<Expr> Parser::postfix()
             consume(TokenType::RightParen, ErrorCode::EXPECTED, "Expected ')' after arguments.");
 
             expr = std::make_unique<CallExpr>(std::move(expr), std::move(paren), std::move(arguments));
+        }
+        else if (match(TokenType::MemberAccess))
+        {
+            Token op = previous();
+            auto member = consume(TokenType::Identifier, ErrorCode::EXPECTED, "Expected member name after '::'.");
+            expr = std::make_unique<MemberAccessExpr>(std::move(op), std::move(expr), std::move(member));
         }
         else
         {

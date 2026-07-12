@@ -12,3 +12,6 @@ Release/
 *.pdb
 *.ilk
 *.exe
+
+.idea/
+cmake-build-debug-visual-studio/

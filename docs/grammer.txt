@@ -132,8 +132,11 @@ unary
 
 postfix
     -> primary
-       ( "[" expression "]"
-       | "(" arguments? ")" )* ;
+       (
+            "[" expression "]"
+            | "(" arguments? ")"
+            | "::" IDENTIFIER
+       )* ;
 
 arguments
     -> expression

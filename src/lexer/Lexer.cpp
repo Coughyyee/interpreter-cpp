@@ -118,6 +118,21 @@ std::expected<std::vector<Token>, Error> Lexer::scan_tokens()
         case ',':
             tokens.emplace_back(Token{TokenType::Comma, ",", line, column});
             break;
+        case ':':
+            if (peek() == ':')
+            {
+                advance(); // consume second ':'
+                tokens.emplace_back(Token{TokenType::MemberAccess, "::", line, column});
+                break;
+            }
+
+            return std::unexpected(Error{
+                .code = ErrorCode::UNEXPECTED_CHAR,
+                .message = "Unexpected ':'. Did you mean '::'?",
+                .line = line,
+                .column = column,
+                .source_line = get_line_from_source(_source, line),
+            });
 
         case '"':
         {

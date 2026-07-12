@@ -37,7 +37,7 @@ class Lexer
 
         {"typeof", TokenType::Typeof},
 
-        {"object", TokenType::Object},
+        {"record", TokenType::Record},
     };
 
   public:

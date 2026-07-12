@@ -37,7 +37,8 @@ enum class TokenType : std::uint8_t
     RightBracket,
 
     // customer operators
-    Arrow,
+    Arrow,        // '->'
+    MemberAccess, // '::'
 
     // Keywords
     // Keyword lexeme map found in Lexer.ixx
@@ -65,7 +66,7 @@ enum class TokenType : std::uint8_t
     Func,
     Return,
 
-    Object,
+    Record,
 
     // Keywords End
 

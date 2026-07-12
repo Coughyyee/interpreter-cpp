@@ -107,3 +107,14 @@ struct CallExpr : Expr
     {
     }
 };
+
+struct MemberAccessExpr : Expr
+{
+    std::unique_ptr<Expr> target;
+    Token member;
+
+    MemberAccessExpr(Token token, std::unique_ptr<Expr> target, Token member)
+        : Expr(token), target(std::move(target)), member(std::move(member))
+    {
+    }
+};

@@ -3,6 +3,7 @@
 #include "types/Exceptions.hpp"
 #include "types/Value.hpp"
 #include "utils/SourceUtils.hpp"
+#include <memory>
 #include <print>
 #include <stdexcept>
 #include <string>
@@ -83,7 +84,7 @@ void Interpreter::execute(const Stmt* stmt)
         return execute_return(return_stmt);
     }
 
-    if (auto obj_decl_stmt = dynamic_cast<const ObjectDeclarationStmt*>(stmt))
+    if (auto obj_decl_stmt = dynamic_cast<const RecordDeclarationStmt*>(stmt))
     {
         return execute_object_declaration(obj_decl_stmt);
     }
@@ -147,6 +148,11 @@ Value Interpreter::evaluate(const Expr* expr)
     if (auto call_expr = dynamic_cast<const CallExpr*>(expr))
     {
         return evaluate_call(call_expr);
+    }
+
+    if (auto member_access_expr = dynamic_cast<const MemberAccessExpr*>(expr))
+    {
+        return evaluate_member_access(member_access_expr);
     }
 
     // Todo: come back to
@@ -253,7 +259,7 @@ void Interpreter::execute_print(const PrintStmt* stmt)
         throw RuntimeException(ErrorCode::UNKNOWN, "Unknown type.", stmt->token);
     }
 }
-void Interpreter::execute_object_declaration(const ObjectDeclarationStmt* stmt)
+void Interpreter::execute_object_declaration(const RecordDeclarationStmt* stmt)
 {
     auto& current_scope = _scopes.back();
 
@@ -305,7 +311,7 @@ void Interpreter::execute_object_declaration(const ObjectDeclarationStmt* stmt)
 
     // creates the object in scope
     current_scope[stmt->name.lexeme] = {
-        .declared_type = TokenType::Object,
+        .declared_type = TokenType::Record,
         .value = std::make_shared<ObjectValue>(stmt->name.lexeme, props),
     };
 }
@@ -602,9 +608,10 @@ Value Interpreter::evaluate_variable(const VariableExpr* expr)
 }
 Value Interpreter::evaluate_assignment(const AssignmentExpr* expr)
 {
+    // rhs of '=' expr
     Value value = evaluate(expr->value.get());
 
-    auto& variable = lookup_variable(expr->token.lexeme, expr->token);
+    Variable& variable = lookup_variable(expr->token.lexeme, expr->token);
 
     if (!type_matches(value, variable.declared_type))
     {
@@ -721,6 +728,27 @@ Value Interpreter::evaluate_call(const CallExpr* expr)
     }
 
     throw RuntimeException(ErrorCode::INVALID_OPERAND, "Can only call functions.", expr->token);
+}
+Value Interpreter::evaluate_member_access(const MemberAccessExpr* expr)
+{
+    Value target_value = evaluate(expr->target.get());
+
+    if (std::holds_alternative<std::shared_ptr<ObjectValue>>(target_value))
+    {
+        auto object = std::get<std::shared_ptr<ObjectValue>>(target_value);
+        auto it = object->properties.find(expr->member.lexeme);
+        if (it == object->properties.end())
+        {
+            // member doesnt exist
+            throw RuntimeException(
+                ErrorCode::UNDEFINED_MEMBER,
+                std::format("Object '{}' has no member '{}'.", expr->target.get()->token.lexeme, expr->member.lexeme),
+                expr->token);
+        }
+        return it->second.value;
+    }
+
+    throw RuntimeException(ErrorCode::NOT_AN_OBJECT, "Cannot access member of non-object.", expr->token);
 }
 #pragma endregion
 
